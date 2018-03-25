@@ -1,0 +1,15 @@
+{
+	"folders": [
+		{
+			"folder_exclude_patterns": [
+				"__pycache__",
+				"*.egg-info"
+			],
+			"path": "."
+		}
+	],
+	"settings": {
+		"auto_python_builder_enabled": false,
+		"python_interpreter": "${project_path:${folder}}/.venv/bin/python"
+	}
+}
