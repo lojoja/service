@@ -8,7 +8,7 @@ Requirements
 ------------
 
 * macOS 10.10.x+
-* Python 2.7.x
+* Python 3.7.x
 * System Integrity Protection must be [disabled](https://developer.apple.com/library/content/documentation/Security/Conceptual/System_Integrity_Protection_Guide/ConfiguringSystemIntegrityProtection/ConfiguringSystemIntegrityProtection.html) to disable a running system daemon or agent
 
 
