@@ -1,13 +1,13 @@
-# -*- coding: utf-8 -*-
 from codecs import open
 import logging
 import os
 import platform
 import pwd
 import re
+import subprocess
 
 import click
-import subprocess32 as subprocess
+
 
 from service import __version__, launchctl  # noqa
 from service.log import change_logger_level, setup_logger

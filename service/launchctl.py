@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 import logging
+import subprocess
 
 import click
-import subprocess32 as subprocess
 
 
 logger = logging.getLogger(__name__)
@@ -40,9 +39,15 @@ def _bootout(service, sudo=False, ignore_missing=False):
             else:
                 raise click.ClickException(msg.format(service.name, ''))
         elif stderr.startswith('operation not permitted'):
-            raise click.ClickException('Cannot stop system service "{}" while SIP is enabled'.format(service.name))
+            raise click.ClickException(
+                'Cannot stop system service "{}" while SIP is enabled'.format(
+                    service.name
+                )
+            )
         else:
-            raise click.ClickException('Failed to stop service "{}"'.format(service.name))
+            raise click.ClickException(
+                'Failed to stop service "{}"'.format(service.name)
+            )
 
 
 def _bootstrap(service, sudo=False):
@@ -52,13 +57,19 @@ def _bootstrap(service, sudo=False):
         stderr = e.stderr.split(': ')[1].lower()
 
         if stderr.startswith('no such file'):
-            raise click.ClickException('Service file "{}" not found'.format(service.file))
+            raise click.ClickException(
+                'Service file "{}" not found'.format(service.file)
+            )
         elif stderr.startswith('service already'):
-            raise click.ClickException('Service "{}" is already running'.format(service.name))
+            raise click.ClickException(
+                'Service "{}" is already running'.format(service.name)
+            )
         elif stderr.startswith('service is disabled'):
             raise click.ClickException('Service "{}" is disabled'.format(service.name))
         else:
-            raise click.ClickException('Failed to start service "{}"'.format(service.name))
+            raise click.ClickException(
+                'Failed to start service "{}"'.format(service.name)
+            )
 
 
 def disable(service, sudo=False):

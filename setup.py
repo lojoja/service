@@ -33,21 +33,18 @@ setup(
         'Environment :: Console',
         'License :: OSI Approved :: MIT License',
         'Operating System :: MacOS :: MacOS X',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7'
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.7',
     ],
     keywords='macOS launchctl',
     packages=['service'],
     data_files=[
         ('/usr/local/etc', ['service.default.conf'])
     ],
-    install_requires=[
-        'click>=6.0',
-        'subprocess32>=3.5.0rc1'
-    ],
     entry_points={
         'console_scripts': [
             'service=service.core:cli',
         ]
     }
+    install_requires=['click>=7.0'],
 )
