@@ -18,7 +18,7 @@ class ClickFormatter(logging.Formatter):
         'debug': 'blue',
         'error': 'red',
         'exception': 'red',
-        'warning': 'yellow'
+        'warning': 'yellow',
     }
 
     def format(self, record):
@@ -26,7 +26,9 @@ class ClickFormatter(logging.Formatter):
             level = record.levelname.lower()
             msg = record.msg
             if level in self.colors:
-                prefix = click.style('{}: '.format(level.title()), fg=self.colors[level])
+                prefix = click.style(
+                    '{}: '.format(level.title()), fg=self.colors[level]
+                )
                 if not isinstance(msg, (str, bytes)):
                     msg = str(msg)
                 msg = '\n'.join(prefix + l for l in msg.splitlines())
@@ -35,12 +37,7 @@ class ClickFormatter(logging.Formatter):
 
 
 class ClickHandler(logging.Handler):
-    error_levels = [
-        'critical',
-        'error',
-        'exception',
-        'warning'
-    ]
+    error_levels = ['critical', 'error', 'exception', 'warning']
 
     def emit(self, record):
         try:

@@ -24,6 +24,7 @@ setup_logger(logger)
 
 class Configuration(object):
     """ Program configuration and environment settings. """
+
     def __init__(self, verbose):
         logger.debug('Gathering system and environment details')
         self.macos_version = self._get_mac_version()
@@ -38,17 +39,16 @@ class Configuration(object):
         logger.debug('Finding reverse domain config file')
 
         filename = '{}.conf'.format(PROGRAM_NAME)
-        paths = [
-            '/usr/local/etc',
-            '/etc'
-        ]
+        paths = ['/usr/local/etc', '/etc']
 
         for p in paths:
             file = os.path.join(p, filename)
 
             logger.debug('Trying reverse domain config file "{}"'.format(file))
             if os.path.isfile(file):
-                logger.debug('Reverse domain config file found; using "{}"'.format(file))
+                logger.debug(
+                    'Reverse domain config file found; using "{}"'.format(file)
+                )
                 return file
 
         logger.debug('Reverse domain config file not found')
@@ -88,15 +88,14 @@ class Configuration(object):
 
 class Service(object):
     """ A service on the system. """
+
     system_paths = [
         '/Library/LaunchAgents',
         '/Library/LaunchDaemons',
         '/System/Library/LaunchAgents',
-        '/System/Library/LaunchDaemons'
+        '/System/Library/LaunchDaemons',
     ]
-    user_paths = [
-        '{}/Library/LaunchAgents'
-    ]
+    user_paths = ['{}/Library/LaunchAgents']
 
     def __init__(self, name, config):
         logger.debug('Initializing service')
@@ -156,7 +155,11 @@ class Service(object):
         constructing the list with all configured reverse domains.
         """
         segments = len(file.split('.'))
-        return [file] if segments > 2 else ['{0}.{1}'.format(rd, file) for rd in reverse_domains]
+        return (
+            [file]
+            if segments > 2
+            else ['{0}.{1}'.format(rd, file) for rd in reverse_domains]
+        )
 
     def _get_paths_to_check(self, path):
         """ Determine whether to use search_paths or the path from CLI argument. """
@@ -194,10 +197,16 @@ class Service(object):
         logger.debug('Validating service domain')
 
         if self.domain == 'system' and not service.startswith(tuple(self.system_paths)):
-            raise click.ClickException('Service "{}" is not in the system domain'.format(service))
+            raise click.ClickException(
+                'Service "{}" is not in the system domain'.format(service)
+            )
 
-        if self.domain.startswith('gui') and service.startswith(tuple(self.system_paths)):
-            raise click.ClickException('Service "{}" is not in the gui domain'.format(service))
+        if self.domain.startswith('gui') and service.startswith(
+            tuple(self.system_paths)
+        ):
+            raise click.ClickException(
+                'Service "{}" is not in the gui domain'.format(service)
+            )
 
 
 class CLIGroup(click.Group):
@@ -208,13 +217,20 @@ class CLIGroup(click.Group):
     This provides a better cli interface without duplicating the code in each subcommand. Argument names
     must still be included in each command's function signature.
     """
+
     def invoke(self, ctx):
         ctx.obj = tuple(ctx.args)
         super(CLIGroup, self).invoke(ctx)
 
 
 @click.group(cls=CLIGroup)
-@click.option('--verbose/--quiet', '-v/-q', is_flag=True, default=None, help='Specify verbosity level.')
+@click.option(
+    '--verbose/--quiet',
+    '-v/-q',
+    is_flag=True,
+    default=None,
+    help='Specify verbosity level.',
+)
 @click.version_option()
 @click.pass_context
 def cli(ctx, verbose):
@@ -226,7 +242,9 @@ def cli(ctx, verbose):
 
     logger.debug('Checking macOS version')
     if config.macos_version < MIN_MACOS_VERSION:
-        raise click.ClickException('{0} requires macOS {1} or higher'.format(PROGRAM_NAME, MIN_MACOS_VERSION))
+        raise click.ClickException(
+            '{0} requires macOS {1} or higher'.format(PROGRAM_NAME, MIN_MACOS_VERSION)
+        )
     else:
         logger.debug('macOS version is {}'.format(config.macos_version))
 
@@ -277,7 +295,9 @@ def restart(config, name):
 
 
 @cli.command()
-@click.option('--enable', '-e', is_flag=True, default=False, help='Enable sevice before starting.')
+@click.option(
+    '--enable', '-e', is_flag=True, default=False, help='Enable sevice before starting.'
+)
 @service_name_argument
 @click.pass_obj
 def start(config, name, enable):
@@ -291,7 +311,13 @@ def start(config, name, enable):
 
 
 @cli.command()
-@click.option('--disable', '-d', is_flag=True, default=False, help='Disable service after stopping.')
+@click.option(
+    '--disable',
+    '-d',
+    is_flag=True,
+    default=False,
+    help='Disable service after stopping.',
+)
 @service_name_argument
 @click.pass_obj
 def stop(config, name, disable):

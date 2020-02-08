@@ -38,13 +38,7 @@ setup(
     ],
     keywords='macOS launchctl',
     packages=['service'],
-    data_files=[
-        ('/usr/local/etc', ['service.default.conf'])
-    ],
-    entry_points={
-        'console_scripts': [
-            'service=service.core:cli',
-        ]
-    }
+    data_files=[('/usr/local/etc', ['service.default.conf'])],
     install_requires=['click>=7.0'],
+    entry_points={'console_scripts': ['service=service.core:cli',]},
 )
