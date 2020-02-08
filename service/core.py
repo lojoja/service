@@ -27,7 +27,6 @@ class Configuration(object):
     def __init__(self, verbose):
         logger.debug('Gathering system and environment details')
         self.macos_version = self._get_mac_version()
-        self.sip_enabled = self._get_sip_status()
         self.sudo = os.geteuid() == 0
         self.user = pwd.getpwnam(os.getenv('SUDO_USER' if self.sudo else 'USER'))
         self.reverse_domains = None
@@ -82,15 +81,6 @@ class Configuration(object):
                     logger.debug('Adding reverse domain "{}"'.format(line))
                     data.append(line)
         return data
-
-    def _get_sip_status(self):
-        try:
-            result = subprocess.run(('csrutil', 'status'), check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        except subprocess.CalledProcessError:
-            return None
-
-        # status stdout example: 'System Integrity Protection status: disabled.\n'
-        return result.stdout.strip('.\n').lower().endswith('enabled')
 
     def get_reverse_domains(self):
         self.reverse_domains = self._get_reverse_domains()
@@ -239,12 +229,6 @@ def cli(ctx, verbose):
         raise click.ClickException('{0} requires macOS {1} or higher'.format(PROGRAM_NAME, MIN_MACOS_VERSION))
     else:
         logger.debug('macOS version is {}'.format(config.macos_version))
-
-    logger.debug('Checking SIP status')
-    if config.sip_enabled is None:
-        raise click.ClickException('Could not determine SIP status')
-    else:
-        logger.debug('SIP is {}'.format('enabled' if config.sip_enabled else 'disabled'))
 
     # Load reverse domains and initiate service only when a subcommand is given without the `--help` option
     if ctx.invoked_subcommand and '--help' not in ctx.obj:
