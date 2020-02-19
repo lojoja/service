@@ -10,6 +10,6 @@
 	],
 	"settings": {
 		"auto_python_builder_enabled": false,
-		"python_interpreter": "${project_path:${folder}}/.venv/bin/python"
+		"python_interpreter": "${project_path:${folder}}/.venv/bin/python3"
 	}
 }
