@@ -8,6 +8,11 @@ import subprocess32 as subprocess
 LC_DOMAIN_GUI: 'gui'
 LC_DOMAIN_SYSTEM: 'system'
 
+LC_ERROR_GUI_ALREADY_STARTED = 5
+LC_ERROR_GUI_ALREADY_STOPPED = 5
+LC_ERROR_SIP = 150
+LC_ERROR_SYSTEM_ALREADY_STARTED = 37
+LC_ERROR_SYSTEM_ALREADY_STOPPED = 113
 
 logger = logging.getLogger(__name__)
 
