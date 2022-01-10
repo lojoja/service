@@ -3,6 +3,8 @@ import logging
 import click
 import subprocess
 
+__all__ = ['LC_DOMAIN_GUI', 'LC_DOMAIN_SYSTEM', 'disable', 'enable', 'restart', 'start', 'stop']
+
 
 LC_DOMAIN_GUI = 'gui'
 LC_DOMAIN_SYSTEM = 'system'
