@@ -30,7 +30,7 @@ def _call(sudo, *args):
     subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
-def _bootout(service, sudo=False, ignore_missing=False):
+def _bootout(service, sudo=False):
     try:
         _call(sudo, 'bootout', service.domain, service.file)
     except subprocess.CalledProcessError as e:
@@ -94,8 +94,7 @@ def enable(service, sudo=False):
 def restart(service, sudo=False):
     """ Restart a service. """
     logger.debug('Restarting service "{}"'.format(service.name))
-
-    _bootout(service, sudo, ignore_missing=True)
+    _bootout(service, sudo)
     _bootstrap(service, sudo)
 
 
