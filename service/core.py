@@ -262,7 +262,7 @@ def disable(config, name):
 @service_name_argument
 @click.pass_obj
 def enable(config, name):
-    """ Enable a service. """
+    """ Enable a service. Only available for system domain services."""
     launchctl.enable(config.service, sudo=config.sudo)
     logger.info('"{}" enabled'.format(config.service.name))
 
@@ -271,13 +271,15 @@ def enable(config, name):
 @service_name_argument
 @click.pass_obj
 def restart(config, name):
-    """ Restart a service. """
+    """ Restart a service. Only available for system domain services. """
     launchctl.restart(config.service, sudo=config.sudo)
     logger.info('"{}" restarted'.format(config.service.name))
 
 
 @cli.command()
-@click.option('--enable', '-e', is_flag=True, default=False, help='Enable sevice before starting.')
+@click.option('--enable', '-e', is_flag=True, default=False,
+    help='Enable sevice before starting. Only available for system domain services.',
+)
 @service_name_argument
 @click.pass_obj
 def start(config, name, enable):
@@ -291,7 +293,9 @@ def start(config, name, enable):
 
 
 @cli.command()
-@click.option('--disable', '-d', is_flag=True, default=False, help='Disable service after stopping.')
+@click.option('--disable', '-d', is_flag=True, default=False,
+    help='Disable service after stopping. Only available for system domain services.',
+)
 @service_name_argument
 @click.pass_obj
 def stop(config, name, disable):

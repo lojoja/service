@@ -5,6 +5,10 @@ import click
 import subprocess32 as subprocess
 
 
+LC_DOMAIN_GUI: 'gui'
+LC_DOMAIN_SYSTEM: 'system'
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -63,6 +67,9 @@ def _bootstrap(service, sudo=False):
 
 def disable(service, sudo=False):
     """ Disable a service. """
+    if service.domain != LC_DOMAIN_SYSTEM:
+        raise click.ClickException('Cannot disable services in the "{}" domain'.format(service.domain))
+
     logger.debug('Disabling service "{}"'.format(service.name))
 
     try:
@@ -73,6 +80,9 @@ def disable(service, sudo=False):
 
 def enable(service, sudo=False):
     """ Enable a service. """
+    if service.domain != LC_DOMAIN_SYSTEM:
+        raise click.ClickException('Cannot enable services in the "{}" domain'.format(service.domain))
+
     logger.debug('Enabling service "{}"'.format(service.name))
 
     try:
