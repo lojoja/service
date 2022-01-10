@@ -1,6 +1,7 @@
 from codecs import open
 import logging
 import os
+import pathlib
 import platform
 import pwd
 import re
@@ -15,6 +16,7 @@ __all__ = ['cli']
 
 PROGRAM_NAME = 'service'
 MIN_MACOS_VERSION = 12.0
+CONFIG_FILE = '{}.conf'.format(PROGRAM_NAME)
 
 logger = logging.getLogger(PROGRAM_NAME)
 setup_logger(logger)
@@ -22,31 +24,28 @@ setup_logger(logger)
 
 class Configuration(object):
     """ Program configuration and environment settings. """
+
     def __init__(self, verbose):
         logger.debug('Gathering system and environment details')
         self.macos_version = self._get_macos_version()
-        self.sudo = os.geteuid() == 0
-        self.user = pwd.getpwnam(os.getenv('SUDO_USER' if self.sudo else 'USER'))
+        self.user = os.geteuid()
+        self.sudo = self.user == 0
         self.reverse_domains = None
         self.service = None
         self.verbose = verbose
 
-    def _find_reverse_domains_file(self):
+    def _find_reverse_domains_config(self):
         """ Locate the reverse domain configuration file to use. """
         logger.debug('Finding reverse domain config file')
 
-        filename = '{}.conf'.format(PROGRAM_NAME)
-        paths = [
-            '/usr/local/etc',
-            '/etc'
-        ]
+        paths = ['/usr/local/etc', '/etc']
 
         for p in paths:
-            file = os.path.join(p, filename)
+            conf = pathlib.Path(p, CONFIG_FILE)
 
-            logger.debug('Trying reverse domain config file "{}"'.format(file))
-            if os.path.isfile(file):
-                logger.debug('Reverse domain config file found; using "{}"'.format(file))
+            logger.debug('Trying reverse domain config file "{}"'.format(conf))
+            if conf.is_file():
+                logger.debug('Reverse domain config file found; using "{}"'.format(conf))
                 return file
 
         logger.debug('Reverse domain config file not found')
@@ -57,17 +56,17 @@ class Configuration(object):
         version = float('.'.join(version.split('.')[:2]))  # format as e.g., '10.10'
         return version
 
-    def _get_reverse_domains(self):
+    def _load_reverse_domains(self):
         logger.debug('Loading reverse domains')
 
-        file = self._find_reverse_domains_file()
+        conf = self._find_reverse_domains_config()
         data = []
 
-        if file:
+        if conf:
             lines = []
 
             try:
-                with open(file, mode='rb', encoding='utf-8') as f:
+                with conf.open(mode='rb', encoding='utf-8') as f:
                     lines = f.read().splitlines()
             except IOError:
                 raise click.ClickException('Failed to read reverse domains file')
@@ -80,8 +79,8 @@ class Configuration(object):
                     data.append(line)
         return data
 
-    def get_reverse_domains(self):
-        self.reverse_domains = self._get_reverse_domains()
+    def load_reverse_domains(self):
+        self.reverse_domains = self._load_reverse_domains()
 
 
 class Service(object):
@@ -230,7 +229,7 @@ def cli(ctx, verbose):
 
     # Load reverse domains and initiate service only when a subcommand is given without the `--help` option
     if ctx.invoked_subcommand and '--help' not in ctx.obj:
-        config.get_reverse_domains()
+        config.load_reverse_domains()
 
         logger.debug('Processing group command arguments')
         name = next((arg for arg in ctx.obj if not arg.startswith('-')), '')
