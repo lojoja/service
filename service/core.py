@@ -16,7 +16,7 @@ __all__ = ['cli']
 
 
 PROGRAM_NAME = 'service'
-MIN_MACOS_VERSION = 10.10
+MIN_MACOS_VERSION = 12.0
 
 logger = logging.getLogger(PROGRAM_NAME)
 setup_logger(logger)
