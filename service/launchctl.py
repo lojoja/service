@@ -4,8 +4,8 @@ import click
 import subprocess
 
 
-LC_DOMAIN_GUI: 'gui'
-LC_DOMAIN_SYSTEM: 'system'
+LC_DOMAIN_GUI = 'gui'
+LC_DOMAIN_SYSTEM = 'system'
 
 LC_ERROR_GUI_ALREADY_STARTED = 5
 LC_ERROR_GUI_ALREADY_STOPPED = 5
