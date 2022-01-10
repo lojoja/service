@@ -44,7 +44,7 @@ class Configuration(object):
             logger.debug('Trying reverse domain config file "{}"'.format(conf))
             if conf.is_file():
                 logger.debug('Reverse domain config file found; using "{}"'.format(conf))
-                return file
+                return conf
 
         logger.debug('Reverse domain config file not found')
         return None
