@@ -67,7 +67,7 @@ def disable(service, sudo=False):
 
     try:
         _call(sudo, 'disable', '{}/{}'.format(service.domain, service.name))
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         raise click.ClickException('Failed to disable "{}"'.format(service.name))
 
 
@@ -80,7 +80,7 @@ def enable(service, sudo=False):
 
     try:
         _call(sudo, 'enable', '{}/{}'.format(service.domain, service.name))
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         raise click.ClickException('Failed to enable "{}"'.format(service.name))
 
 
