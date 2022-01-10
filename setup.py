@@ -26,15 +26,14 @@ setup(
     long_description=get_long_description(),
     url='https://github.com/lojoja/service',
     author='lojoja',
-    author_email='github@lojoja.com',
+    author_email='dev@lojoja.com',
     license='MIT',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
         'License :: OSI Approved :: MIT License',
         'Operating System :: MacOS :: MacOS X',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7'
+        'Programming Language :: Python :: 3'
     ],
     keywords='macOS launchctl',
     packages=['service'],
@@ -42,8 +41,7 @@ setup(
         ('/usr/local/etc', ['service.default.conf'])
     ],
     install_requires=[
-        'click>=6.0',
-        'subprocess32>=3.5.0rc1'
+        'click==8.0.3'
     ],
     entry_points={
         'console_scripts': [

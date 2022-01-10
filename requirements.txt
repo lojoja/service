@@ -1,2 +1,2 @@
-click>=6.0
-subprocess32>=3.5.0rc1
+click==8.0.3
+flake8>=4.0
