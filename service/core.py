@@ -26,7 +26,7 @@ class Configuration(object):
     """ Program configuration and environment settings. """
     def __init__(self, verbose):
         logger.debug('Gathering system and environment details')
-        self.macos_version = self._get_mac_version()
+        self.macos_version = self._get_macos_version()
         self.sudo = os.geteuid() == 0
         self.user = pwd.getpwnam(os.getenv('SUDO_USER' if self.sudo else 'USER'))
         self.reverse_domains = None
@@ -54,7 +54,7 @@ class Configuration(object):
         logger.debug('Reverse domain config file not found')
         return None
 
-    def _get_mac_version(self):
+    def _get_macos_version(self):
         version = platform.mac_ver()[0]
         version = float('.'.join(version.split('.')[:2]))  # format as e.g., '10.10'
         return version
