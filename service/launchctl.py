@@ -1,7 +1,7 @@
 import logging
 
 import click
-import subprocess32 as subprocess
+import subprocess
 
 
 LC_DOMAIN_GUI: 'gui'
