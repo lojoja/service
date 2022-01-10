@@ -1,9 +1,7 @@
-from codecs import open
 import logging
 import os
 import pathlib
 import platform
-import pwd
 import re
 
 import click
