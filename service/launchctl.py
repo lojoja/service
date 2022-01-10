@@ -42,7 +42,7 @@ def _bootout(service, sudo=False):
             raise click.ClickException('Service "{}" is not running'.format(service.name))
         elif e.returncode == LC_ERROR_SIP:
             raise click.ClickException('Service "{}" cannot be stopped due to SIP'.format(service.name))
-        else
+        else:
             raise click.ClickException('Failed to stop service "{}"'.format(service.name))
 
 
@@ -54,7 +54,7 @@ def _bootstrap(service, sudo=False):
             raise click.ClickException('Service "{}" is not running'.format(service.name))
         elif e.returncode == LC_ERROR_SIP:
             raise click.ClickException('Service "{}" cannot be started due to SIP'.format(service.name))
-        else
+        else:
             raise click.ClickException('Failed to start service "{}"'.format(service.name))
 
 
