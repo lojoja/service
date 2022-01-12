@@ -53,7 +53,7 @@ def _bootstrap(service, sudo=False):
         _call(sudo, 'bootstrap', service.domain, service.file)
     except subprocess.CalledProcessError as e:
         if e.returncode in [ERROR_GUI_ALREADY_STARTED, ERROR_SYSTEM_ALREADY_STARTED]:
-            raise click.ClickException('Service "{}" is not running'.format(service.name))
+            raise click.ClickException('Service "{}" is already running'.format(service.name))
         elif e.returncode == ERROR_SIP:
             raise click.ClickException('Service "{}" cannot be started due to SIP'.format(service.name))
         else:
