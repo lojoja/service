@@ -3,17 +3,17 @@ import logging
 import click
 import subprocess
 
-__all__ = ['LC_DOMAIN_GUI', 'LC_DOMAIN_SYSTEM', 'disable', 'enable', 'restart', 'start', 'stop']
+__all__ = ['DOMAIN_GUI', 'DOMAIN_SYSTEM', 'disable', 'enable', 'restart', 'start', 'stop']
 
 
-LC_DOMAIN_GUI = 'gui'
-LC_DOMAIN_SYSTEM = 'system'
+DOMAIN_GUI = 'gui'
+DOMAIN_SYSTEM = 'system'
 
-LC_ERROR_GUI_ALREADY_STARTED = 5
-LC_ERROR_GUI_ALREADY_STOPPED = 5
-LC_ERROR_SIP = 150
-LC_ERROR_SYSTEM_ALREADY_STARTED = 37
-LC_ERROR_SYSTEM_ALREADY_STOPPED = 113
+ERROR_GUI_ALREADY_STARTED = 5
+ERROR_GUI_ALREADY_STOPPED = 5
+ERROR_SIP = 150
+ERROR_SYSTEM_ALREADY_STARTED = 37
+ERROR_SYSTEM_ALREADY_STOPPED = 113
 
 logger = logging.getLogger(__name__)
 
@@ -40,9 +40,9 @@ def _bootout(service, sudo=False):
     try:
         _call(sudo, 'bootout', service.domain, service.file)
     except subprocess.CalledProcessError as e:
-        if e.returncode in [LC_ERROR_GUI_ALREADY_STOPPED, LC_ERROR_SYSTEM_ALREADY_STOPPED]:
+        if e.returncode in [ERROR_GUI_ALREADY_STOPPED, ERROR_SYSTEM_ALREADY_STOPPED]:
             raise click.ClickException('Service "{}" is not running'.format(service.name))
-        elif e.returncode == LC_ERROR_SIP:
+        elif e.returncode == ERROR_SIP:
             raise click.ClickException('Service "{}" cannot be stopped due to SIP'.format(service.name))
         else:
             raise click.ClickException('Failed to stop service "{}"'.format(service.name))
@@ -52,9 +52,9 @@ def _bootstrap(service, sudo=False):
     try:
         _call(sudo, 'bootstrap', service.domain, service.file)
     except subprocess.CalledProcessError as e:
-        if e.returncode in [LC_ERROR_GUI_ALREADY_STARTED, LC_ERROR_SYSTEM_ALREADY_STARTED]:
+        if e.returncode in [ERROR_GUI_ALREADY_STARTED, ERROR_SYSTEM_ALREADY_STARTED]:
             raise click.ClickException('Service "{}" is not running'.format(service.name))
-        elif e.returncode == LC_ERROR_SIP:
+        elif e.returncode == ERROR_SIP:
             raise click.ClickException('Service "{}" cannot be started due to SIP'.format(service.name))
         else:
             raise click.ClickException('Failed to start service "{}"'.format(service.name))
@@ -62,7 +62,7 @@ def _bootstrap(service, sudo=False):
 
 def disable(service, sudo=False):
     """ Disable a service. """
-    if service.domain != LC_DOMAIN_SYSTEM:
+    if service.domain != DOMAIN_SYSTEM:
         raise click.ClickException('Cannot disable services in the "{}" domain'.format(service.domain))
 
     logger.debug('Disabling service "{}"'.format(service.name))
@@ -75,7 +75,7 @@ def disable(service, sudo=False):
 
 def enable(service, sudo=False):
     """ Enable a service. """
-    if service.domain != LC_DOMAIN_SYSTEM:
+    if service.domain != DOMAIN_SYSTEM:
         raise click.ClickException('Cannot enable services in the "{}" domain'.format(service.domain))
 
     logger.debug('Enabling service "{}"'.format(service.name))
