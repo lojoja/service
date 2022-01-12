@@ -1,8 +1,19 @@
 import logging
-import subprocess
 
 import click
+import subprocess
 
+__all__ = ['DOMAIN_GUI', 'DOMAIN_SYSTEM', 'disable', 'enable', 'restart', 'start', 'stop']
+
+
+DOMAIN_GUI = 'gui'
+DOMAIN_SYSTEM = 'system'
+
+ERROR_GUI_ALREADY_STARTED = 5
+ERROR_GUI_ALREADY_STOPPED = 5
+ERROR_SIP = 150
+ERROR_SYSTEM_ALREADY_STARTED = 37
+ERROR_SYSTEM_ALREADY_STOPPED = 113
 
 logger = logging.getLogger(__name__)
 
@@ -25,78 +36,60 @@ def _call(sudo, *args):
     subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
-def _bootout(service, sudo=False, ignore_missing=False):
+def _bootout(service, sudo=False):
     try:
         _call(sudo, 'bootout', service.domain, service.file)
     except subprocess.CalledProcessError as e:
-        stderr = e.stderr.split(': ')[1].lower()
-
-        if stderr.startswith('could not find'):
-            msg = 'Service "{}" is not running{}'
-
-            if ignore_missing:
-                logger.debug(msg.format(service.name, ' (ignored)'))
-            else:
-                raise click.ClickException(msg.format(service.name, ''))
-        elif stderr.startswith('operation not permitted'):
-            raise click.ClickException(
-                'Cannot stop system service "{}" while SIP is enabled'.format(
-                    service.name
-                )
-            )
+        if e.returncode in [ERROR_GUI_ALREADY_STOPPED, ERROR_SYSTEM_ALREADY_STOPPED]:
+            raise click.ClickException('Service "{}" is not running'.format(service.name))
+        elif e.returncode == ERROR_SIP:
+            raise click.ClickException('Service "{}" cannot be stopped due to SIP'.format(service.name))
         else:
-            raise click.ClickException(
-                'Failed to stop service "{}"'.format(service.name)
-            )
+            raise click.ClickException('Failed to stop service "{}"'.format(service.name))
 
 
 def _bootstrap(service, sudo=False):
     try:
         _call(sudo, 'bootstrap', service.domain, service.file)
     except subprocess.CalledProcessError as e:
-        stderr = e.stderr.split(': ')[1].lower()
-
-        if stderr.startswith('no such file'):
-            raise click.ClickException(
-                'Service file "{}" not found'.format(service.file)
-            )
-        elif stderr.startswith('service already'):
-            raise click.ClickException(
-                'Service "{}" is already running'.format(service.name)
-            )
-        elif stderr.startswith('service is disabled'):
-            raise click.ClickException('Service "{}" is disabled'.format(service.name))
+        if e.returncode in [ERROR_GUI_ALREADY_STARTED, ERROR_SYSTEM_ALREADY_STARTED]:
+            raise click.ClickException('Service "{}" is already running'.format(service.name))
+        elif e.returncode == ERROR_SIP:
+            raise click.ClickException('Service "{}" cannot be started due to SIP'.format(service.name))
         else:
-            raise click.ClickException(
-                'Failed to start service "{}"'.format(service.name)
-            )
+            raise click.ClickException('Failed to start service "{}"'.format(service.name))
 
 
 def disable(service, sudo=False):
     """ Disable a service. """
+    if service.domain != DOMAIN_SYSTEM:
+        raise click.ClickException('Cannot disable services in the "{}" domain'.format(service.domain))
+
     logger.debug('Disabling service "{}"'.format(service.name))
 
     try:
         _call(sudo, 'disable', '{}/{}'.format(service.domain, service.name))
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         raise click.ClickException('Failed to disable "{}"'.format(service.name))
 
 
 def enable(service, sudo=False):
     """ Enable a service. """
+    if service.domain != DOMAIN_SYSTEM:
+        raise click.ClickException('Cannot enable services in the "{}" domain'.format(service.domain))
+
     logger.debug('Enabling service "{}"'.format(service.name))
 
     try:
         _call(sudo, 'enable', '{}/{}'.format(service.domain, service.name))
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         raise click.ClickException('Failed to enable "{}"'.format(service.name))
 
 
 def restart(service, sudo=False):
     """ Restart a service. """
     logger.debug('Restarting service "{}"'.format(service.name))
-
-    _bootout(service, sudo, ignore_missing=True)
+    _bootout(service, sudo)
     _bootstrap(service, sudo)
 
 
