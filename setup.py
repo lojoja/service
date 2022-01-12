@@ -33,7 +33,8 @@ setup(
         'Environment :: Console',
         'License :: OSI Approved :: MIT License',
         'Operating System :: MacOS :: MacOS X',
-        'Programming Language :: Python :: 3'
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.9'
     ],
     keywords='macOS launchctl',
     packages=['service'],

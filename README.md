@@ -7,9 +7,8 @@ Extremely basic launchctl wrapper for macOS.
 Requirements
 ------------
 
-* macOS 10.10.x+
-* Python 2.7.x
-* System Integrity Protection must be [disabled](https://developer.apple.com/library/content/documentation/Security/Conceptual/System_Integrity_Protection_Guide/ConfiguringSystemIntegrityProtection/ConfiguringSystemIntegrityProtection.html) to disable a running system daemon or agent
+* macOS 12.x+
+* Python 3.9.x+
 
 
 Installation
@@ -24,7 +23,7 @@ Use
 ---
 
 ```
-Usage: service [OPTIONS] COMMAND [OPTIONS] [NAME]
+Usage: service [OPTIONS] COMMAND [NAME]...
 
 Options:
       --version                   Show the version and exit
@@ -38,10 +37,6 @@ Commands:
   restart                         Restart a service
   start                           Start a service, optionally enabling it first
   stop                            Stop a service, optionally disabling it afterward
-
-Command Options:
-  -d, --disable                   Disable service after stopping
-  -e, --enable                    Enable service before starting
 ```
 
 `[NAME]` can be the filename or full path, with or with `.plist` extension:
@@ -49,9 +44,11 @@ Command Options:
 ```
 com.foobar.baz
 com.foobar.baz.plist
-/System/Library/LaunchDaemons/com.foobar.baz
-/System/Library/LaunchDaemons/com.foobar.baz.plist
+/Library/LaunchDaemons/com.foobar.baz
+/Library/LaunchDaemons/com.foobar.baz.plist
 ```
+
+Targeting a macOS system service found in the `/System/*` path will raise an error and terminate without attempting to modify the service state. These services typically cannot be changed unless SIP is disabled.
 
 
 Configure
