@@ -272,7 +272,8 @@ def restart(config, name):
 
 
 @cli.command()
-@click.option('--enable', '-e', is_flag=True, default=False,
+@click.option(
+    '--enable', '-e', is_flag=True, default=False,
     help='Enable sevice before starting. Only available for system domain services.',
 )
 @service_name_argument
@@ -288,7 +289,8 @@ def start(config, name, enable):
 
 
 @cli.command()
-@click.option('--disable', '-d', is_flag=True, default=False,
+@click.option(
+    '--disable', '-d', is_flag=True, default=False,
     help='Disable service after stopping. Only available for system domain services.',
 )
 @service_name_argument
