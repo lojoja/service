@@ -54,7 +54,7 @@ class Configuration(object):
         version = float('.'.join(version.split('.')[:2]))  # format as e.g., '10.10'
         return version
 
-    def _load_reverse_domains(self):
+    def load_reverse_domains(self):
         logger.debug('Loading reverse domains')
 
         conf = self._find_reverse_domains_config()
@@ -64,45 +64,29 @@ class Configuration(object):
             lines = []
 
             try:
-                with conf.open(mode='rb', encoding='utf-8') as f:
+                with conf.open(mode='r', encoding='utf-8') as f:
                     lines = f.read().splitlines()
             except IOError:
                 raise click.ClickException('Failed to read reverse domains file')
 
             for line in lines:
-                line = re.split('#|\s', line.strip(), 1)[0]
+                line = re.split(r'#|\s', line.strip(), 1)[0]
 
                 if line:
                     logger.debug('Adding reverse domain "{}"'.format(line))
                     data.append(line)
-        return data
 
-    def load_reverse_domains(self):
-        self.reverse_domains = self._load_reverse_domains()
+        self.reverse_domains = data
 
 
 class Service(object):
     """ A service on the system. """
-    system_paths = [
-        '/Library/LaunchAgents',
-        '/Library/LaunchDaemons',
-        '/System/Library/LaunchAgents',
-        '/System/Library/LaunchDaemons'
-    ]
-    user_paths = [
-        '{}/Library/LaunchAgents'
-    ]
 
     def __init__(self, name, config):
         logger.debug('Initializing service')
-        self._search_paths = self._get_search_paths(config.sudo, config.user)
-        self._domain = self._get_target_domain(config.sudo, config.user)
+        self._domain = launchctl.DOMAIN_SYSTEM if config.sudo else '{}/{}'.format(launchctl.DOMAIN_GUI, config.user)
+        self._search_paths = self._get_search_paths()
         self._file = self._find(name, config.reverse_domains)
-
-    @property
-    def daemon(self):
-        """ Service filename with extension. """
-        return os.path.basename(self.file)
 
     @property
     def domain(self):
@@ -111,88 +95,90 @@ class Service(object):
 
     @property
     def file(self):
-        """ Full path to the service file. """
-        return self._file
+        """ Full path to the service file, as a string. """
+        return str(self._file)
 
     @property
     def name(self):
-        """ Service filename without extension. """
-        return os.path.splitext(self.daemon)[0]
+        """ Service filename without extension, as a string. """
+        return self._file.stem
 
     @property
     def search_paths(self):
         return self._search_paths
 
-    def _find(self, name, reverse_domains):
-        """ Find the service based on the information given. """
+    def _find(self, name, rev_domains):
+        """
+        Find the service based on the information given. Uses the `name` argument as input on the CLI if it includes
+        an absolute or relative path, adding the file extension if missing, otherwise constructs and tests all possible
+        file paths in the current launchctl domain for a match.
+        """
         logger.debug('Finding service "{}"'.format(name))
         _name = name  # save the original name
+        service_path = None
 
-        name = self._normalize_filename(name)
-        path, filename = os.path.split(name)
-        possible_paths = self._get_paths_to_check(path)
-        possible_filenames = self._get_files_to_check(filename, reverse_domains)
+        if not name.endswith('.plist'):
+            name += '.plist'
 
-        for pfile in possible_filenames:
-            for ppath in possible_paths:
-                service_file = os.path.join(ppath, pfile)
-                logger.debug('Trying "{}"'.format(service_file))
+        path = pathlib.Path(name)
 
-                if os.path.isfile(service_file):
-                    logger.debug('Service found, using "{}"'.format(service_file))
-                    self._validate_domain(service_file)
-                    return service_file
+        if len(path.parts) > 1:
+            logger.debug('Resolving path from CLI input')
+            path = path.expanduser().absolute()
 
-        raise click.ClickException('Service "{}" not found'.format(_name))
+            logger.debug('Trying "{}"'.format(path))
+            if path.is_file():
+                service_path = path
+        else:
+            filenames = [path.name] if len(path.suffixes) > 1 else ['{}.{}'.format(rd, path.name) for rd in rev_domains]
 
-    def _get_files_to_check(self, file, reverse_domains):
-        """
-        Get list of possible services using the name from the CLI argument if it includes a reverse domain, otherwise
-        constructing the list with all configured reverse domains.
-        """
-        segments = len(file.split('.'))
-        return [file] if segments > 2 else ['{0}.{1}'.format(rd, file) for rd in reverse_domains]
+            for search_path in self.search_paths:
+                for filename in filenames:
+                    possible_file = search_path.joinpath(filename)
+                    logger.debug('Trying "{}"'.format(possible_file))
 
-    def _get_paths_to_check(self, path):
-        """ Determine whether to use search_paths or the path from CLI argument. """
-        return [path] if path else self.search_paths
+                    if possible_file.is_file():
+                        service_path = possible_file
+                        break
+                else:
+                    continue
+                break
 
-    def _get_search_paths(self, sudo, user):
+        if not service_path:
+            raise click.ClickException('Service "{}" not found'.format(_name))
+
+        logger.debug('Service found, using "{}"'.format(service_path))
+        self._validate_domain(service_path)
+        return service_path
+
+    def _get_search_paths(self):
         """ Get the service search paths for system or user domains. """
         logger.debug('Identifying search paths')
 
-        if sudo:
-            logger.debug('Using "system" search paths')
-            paths = self.system_paths
-        else:
-            logger.debug('Using "user" search paths')
-            paths = self.user_paths
-            paths[0] = paths[0].format(user.pw_dir)
-        return paths
+        common_paths = ['Library/LaunchAgents', 'Library/LaunchDaemons']
+        prefixes = ['/', '/System'] if self.domain == launchctl.DOMAIN_SYSTEM else [pathlib.Path.home()]
+        search_paths = []
 
-    def _get_target_domain(self, sudo, user):
-        """ Get the service target domain. """
-        return 'system' if sudo else 'gui/{}'.format(user.pw_uid)
+        for prefix in prefixes:
+            for common_path in common_paths:
+                path = pathlib.Path(prefix, common_path)
+                if path.is_dir():
+                    search_paths.append(path)
+        return search_paths
 
-    def _normalize_filename(self, name):
-        """ Ensure filename has an extension. """
-        ext = '.plist'
-        if not name.endswith(ext):
-            name += ext
-        return name
-
-    def _validate_domain(self, service):
-        """
-        Verify the service exists in the current domain. Used to check user full path input, if the program
-        searched for and identified the service it's guaranteed to be in the correct domain.
-        """
+    def _validate_domain(self, service_path):
+        """ Verify the service exists in the current domain and is not a macOS system service. """
         logger.debug('Validating service domain')
 
-        if self.domain == 'system' and not service.startswith(tuple(self.system_paths)):
-            raise click.ClickException('Service "{}" is not in the system domain'.format(service))
+        if self.domain == launchctl.DOMAIN_SYSTEM:
+            if service_path.parts[1] == ('System'):
+                raise click.ClickException('Service "{}" is a macOS system service'.format(service_path))
 
-        if self.domain.startswith('gui') and service.startswith(tuple(self.system_paths)):
-            raise click.ClickException('Service "{}" is not in the gui domain'.format(service))
+            if service_path.parts[1] == ('Users'):
+                raise click.ClickException('Service "{}" is not in the "{}" domain'.format(service_path, self.domain))
+        else:
+            if not service_path.parts[1] == ('Users'):
+                raise click.ClickException('Service "{}" is not in the "{}" domain'.format(service_path, self.domain))
 
 
 class CLIGroup(click.Group):
