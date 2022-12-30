@@ -1,26 +1,22 @@
-service
-=======
+# service
 
 Extremely basic launchctl wrapper for macOS.
 
 
-Requirements
-------------
+## Requirements
 
 * macOS 12.x+
-* Python 3.9.x+
+* Python 3.10.x+
 
 
-Installation
-------------
+## Installation
 
 ```
 pip install git+https://github.com/lojoja/service.git
 ```
 
 
-Use
----
+## Use
 
 ```
 Usage: service [OPTIONS] COMMAND [NAME]...
@@ -51,8 +47,7 @@ com.foobar.baz.plist
 Targeting a macOS system service found in the `/System/*` path will raise an error and terminate without attempting to modify the service state. These services typically cannot be changed unless SIP is disabled.
 
 
-Configure
----------
+## Configure
 
 Copy `/usr/local/etc/service.default.conf` to `/usr/local/etc/service.conf`. Each line is a reverse domain to search for a service name. This allows short, friendly names without a path or full filename passed as the `[NAME]` argument to be resolved to a file automatically. It's recommended to limit the reverse domains to those you control.
 
@@ -70,7 +65,6 @@ $ sudo service start baz
 ```
 
 
-License
--------
+## License
 
 service is released under the [MIT License](./LICENSE)

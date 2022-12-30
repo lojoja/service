@@ -1,0 +1,76 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "service"
+version = "1.2.0"
+description = "Extremely basic launchctl wrapper for macOS."
+readme = "README.md"
+license = "MIT"
+authors = [
+  "lojoja <dev@lojoja.com>"
+]
+homepage = "https://gitea.lojoja.com/lojoja/service"
+repository = "https://gitea.lojoja.com/lojoja/service"
+documentation = "https://gitea.lojoja.com/lojoja/service"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  'Environment :: Console',
+  "License :: OSI Approved :: MIT License",
+  'Operating System :: MacOS :: MacOS X',
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+]
+
+[tool.poetry.dependencies]
+python = "^3.10.0"
+click = "^8.0.0"
+clickext = {version = "^0.1.1", source = "lojoja"}
+
+[tool.poetry.group.dev.dependencies]
+black = "^22.0.0"
+flake8 = "^6.0.0"
+pylint = "^2.0.0"
+pytest = "^7.0.0"
+pytest-cov = "^3.0.0"
+
+[tool.poetry.scripts]
+service = "service.core:cli"
+
+[[tool.poetry.source]]
+name = "lojoja"
+url = "https://gitea.lojoja.com/api/packages/lojoja/pypi/simple"
+
+[tool.black]
+line-length = 120
+target_version = ["py310"]
+include = '\.pyi?$'
+
+[tool.coverage.run]
+source = ["triex"]
+omit = ["tests/"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "def __repr__",
+  "if log:"
+]
+show_missing = true
+
+[tool.pylint.main]
+ignore-paths = ["dist/.*.py", ".*/.venv/.*.py"]
+
+[tool.pylint.format]
+max-line-length = 120
+
+[tool.pyright]
+ignore = ["dist/*", ".venv/*"]
+venvPath = "."
+venv = [".venv"]
+
+[tool.pytest.ini_options]
+addopts = "--cov -s"
+filterwarnings = ["ignore:::.*pytest_cov*"]
+testpaths = ["tests"]

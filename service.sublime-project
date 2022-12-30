@@ -2,15 +2,21 @@
 	"folders": [
 		{
 			"folder_exclude_patterns": [
-				"__pycache__",
-				"*.egg-info"
+        "__pycache__",
+        "*.egg-info",
+        ".pytest_cache"
 			],
 			"path": "."
 		}
 	],
-	"settings": {
-		"auto_python_builder_enabled": false,
-		"python_interpreter": "${project_path}/.venv/bin/python3",
-		"SublimeLinter.linters.flake8.python": "${project_path}/.venv/bin/python3"
-	}
+  "settings": {
+    "LSP": {
+      "LSP-pylsp": {
+        "settings": {
+          "pylsp.plugins.flake8.executable": ".venv/bin/flake8",
+          "pylsp.plugins.pylint.executable": ".venv/bin/pylint"
+        }
+      }
+    }
+  }
 }
