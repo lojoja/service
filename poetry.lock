@@ -491,7 +491,7 @@ dev = ["pre-commit", "pytest-asyncio", "tox"]
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -588,4 +588,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10.0"
-content-hash = "3674f365dd1c5cb7220da345afb31839e0b80e39bc4db3085e8a8b3d135bb360"
+content-hash = "42da6778f5713ce8aa5a1b07c670c590c8cccbef5a7bf80fa419bfbd425aa38a"
