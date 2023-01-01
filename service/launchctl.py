@@ -1,105 +1,99 @@
+"""
+service.launchctl
+
+An interface for constructing and executing launchctl commands.
+"""
+
+from __future__ import annotations
 import logging
-
-import click
 import subprocess
+from typing import TYPE_CHECKING
 
-__all__ = ['DOMAIN_GUI', 'DOMAIN_SYSTEM', 'disable', 'enable', 'restart', 'start', 'stop']
+if TYPE_CHECKING:  # pragma: no cover
+    from service import Service
 
 
-DOMAIN_GUI = 'gui'
-DOMAIN_SYSTEM = 'system'
+__all__ = ["DOMAIN_GUI", "DOMAIN_SYS", "boot", "change_state"]
+
+
+DOMAIN_GUI = "gui"
+DOMAIN_SYS = "system"
 
 ERROR_GUI_ALREADY_STARTED = 5
 ERROR_GUI_ALREADY_STOPPED = 5
 ERROR_SIP = 150
-ERROR_SYSTEM_ALREADY_STARTED = 37
-ERROR_SYSTEM_ALREADY_STOPPED = 113
-
-logger = logging.getLogger(__name__)
+ERROR_SYS_ALREADY_STARTED = 37
+ERROR_SYS_ALREADY_STOPPED = 113
 
 
-def _call(sudo, *args):
+logger = logging.getLogger(__package__)
+
+
+def _execute(subcommand: str, *args: str) -> None:
     """
-    Call the launchctl program.
+    Construct and execute a launchctl command.
 
-    NOTE: Sudo is not optional when calling `_call` and must be the first argument because the rest of the command
-    is arbitrary in length. This is different than the public API functions which use an optional keyword argument
-    for sudo.
+    Args:
+        subcommand: The launchctl subcommand to run
+        args: The arguments for the subcommand
     """
-    cmd = []
-    if sudo:
-        cmd.append('sudo')
-    cmd.append('launchctl')
-    cmd.extend(args)
+    cmd = ["launchctl", subcommand, *args]
 
-    logger.debug('Calling launchctl with command "{}"'.format(cmd))
-    subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    logger.debug('Calling launchctl with command "%s"', " ".join(cmd))
+    subprocess.run(cmd, check=True, capture_output=True)
 
 
-def _bootout(service, sudo=False):
+def boot(service: Service, run: bool = False) -> None:
+    """Start or stop a service.
+
+    Args:
+        service: The service to modify.
+        run: Whether to run (start) the service.
+
+    Raises:
+        RuntimeError: When the service is already in the target state, runtime state change is prevented by SIP, or
+                      changing the runtime state fails.
+    """
+    subcmd, action, current_state = ("bootstrap", "start", "started") if run else ("bootout", "stop", "stopped")
+
+    logger.debug("Changing service runtime state: %s (%s)", service.name, action)
+
     try:
-        _call(sudo, 'bootout', service.domain, service.file)
-    except subprocess.CalledProcessError as e:
-        if e.returncode in [ERROR_GUI_ALREADY_STOPPED, ERROR_SYSTEM_ALREADY_STOPPED]:
-            raise click.ClickException('Service "{}" is not running'.format(service.name))
-        elif e.returncode == ERROR_SIP:
-            raise click.ClickException('Service "{}" cannot be stopped due to SIP'.format(service.name))
+        _execute(subcmd, service.domain, service.file)
+    except subprocess.CalledProcessError as exc:
+        if exc.returncode in [
+            ERROR_GUI_ALREADY_STARTED,
+            ERROR_GUI_ALREADY_STOPPED,
+            ERROR_SYS_ALREADY_STARTED,
+            ERROR_SYS_ALREADY_STOPPED,
+        ]:
+            msg = f'Service "{service.name}" is already {current_state}'
         else:
-            raise click.ClickException('Failed to stop service "{}"'.format(service.name))
+            reason = " due to SIP" if exc.returncode == ERROR_SIP else ""
+            msg = f'Failed to {action} service "{service.name}"{reason}'
+
+        raise RuntimeError(msg) from exc
 
 
-def _bootstrap(service, sudo=False):
-    try:
-        _call(sudo, 'bootstrap', service.domain, service.file)
-    except subprocess.CalledProcessError as e:
-        if e.returncode in [ERROR_GUI_ALREADY_STARTED, ERROR_SYSTEM_ALREADY_STARTED]:
-            raise click.ClickException('Service "{}" is already running'.format(service.name))
-        elif e.returncode == ERROR_SIP:
-            raise click.ClickException('Service "{}" cannot be started due to SIP'.format(service.name))
-        else:
-            raise click.ClickException('Failed to start service "{}"'.format(service.name))
+def change_state(service: Service, enable: bool = False) -> None:
+    """Change service state (enable/disble).
 
+    Args:
+        service: The service to modify.
+        enable: Whether the service should be enabled.
 
-def disable(service, sudo=False):
-    """ Disable a service. """
-    if service.domain != DOMAIN_SYSTEM:
-        raise click.ClickException('Cannot disable services in the "{}" domain'.format(service.domain))
+    Raises:
+        ValueError: When an unknown service state is specified.
+        RuntimeError: When the service state cannot be changed or failed to change.
+    """
+    subcmd = "enable" if enable else "disable"
 
-    logger.debug('Disabling service "{}"'.format(service.name))
+    logger.debug("Changing service state: %s (%s)", service.name, subcmd)
 
-    try:
-        _call(sudo, 'disable', '{}/{}'.format(service.domain, service.name))
-    except subprocess.CalledProcessError:
-        raise click.ClickException('Failed to disable "{}"'.format(service.name))
-
-
-def enable(service, sudo=False):
-    """ Enable a service. """
-    if service.domain != DOMAIN_SYSTEM:
-        raise click.ClickException('Cannot enable services in the "{}" domain'.format(service.domain))
-
-    logger.debug('Enabling service "{}"'.format(service.name))
+    if service.domain != DOMAIN_SYS:
+        raise RuntimeError(f'Cannot change service state in the "{service.domain}" domain')
 
     try:
-        _call(sudo, 'enable', '{}/{}'.format(service.domain, service.name))
-    except subprocess.CalledProcessError:
-        raise click.ClickException('Failed to enable "{}"'.format(service.name))
-
-
-def restart(service, sudo=False):
-    """ Restart a service. """
-    logger.debug('Restarting service "{}"'.format(service.name))
-    _bootout(service, sudo)
-    _bootstrap(service, sudo)
-
-
-def start(service, sudo=False):
-    """ Start a service. """
-    logger.debug('Starting service "{}"'.format(service.name))
-    _bootstrap(service, sudo)
-
-
-def stop(service, sudo=False):
-    """ Stop a service. """
-    logger.debug('Stopping service "{}"'.format(service.name))
-    _bootout(service, sudo)
+        _execute(subcmd, service.id)
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError(f'Failed to {subcmd} "{service.name}"') from exc

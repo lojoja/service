@@ -1,1 +1,2 @@
-__version__ = '1.2.0'
+# pylint: disable=c0114
+from service.service import Service, locate  # pyright: ignore[reportUnusedImport,reportUnusedVariable]
