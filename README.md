@@ -11,57 +11,107 @@ Extremely basic launchctl wrapper for macOS.
 
 ## Installation
 
+### Local
+
 ```
-pip install git+https://github.com/lojoja/service.git
+pip install --trusted-host=gitea.lojoja.com --extra-index-url=https://gitea.lojoja.com/api/packages/lojoja/pypi/simple service
+```
+
+### Remote
+
+```
+pip install git+ssh://github.com/lojoja/service@main
 ```
 
 
-## Use
+## Usage
 
 ```
-Usage: service [OPTIONS] COMMAND [NAME]...
+Usage: service [OPTIONS] COMMAND [ARGS]...
+
+  Extremely basic launchctl wrapper for macOS.
 
 Options:
-      --version                   Show the version and exit
-      --help                      Show this message and exit
-  -q, --quiet                     Decrease verbosity
-  -v, --verbose                   Increase verbosity
+  -c, --config TEXT  The configuration file to use
+  --help             Show this message and exit.
+  -v, --verbose      Increase verbosity
+  --version          Show the version and exit.
 
 Commands:
-  disable                         Disable a service
-  enable                          Enable a service
-  restart                         Restart a service
-  start                           Start a service, optionally enabling it first
-  stop                            Stop a service, optionally disabling it afterward
+  disable  Disable a service (system domain only).
+  enable   Enable a service (system domain only).
+  restart  Restart a service.
+  start    Start a service.
+  stop     Stop a service.
 ```
 
-`[NAME]` can be the filename or full path, with or with `.plist` extension:
+Services can be referenced by name, file name (with or without extension), or the full path to the file. When referenced by name, the service will be resolved using the defined reverse domains (see [Configuration](#Configuration)). All the following are valid references:
 
-```
-com.foobar.baz
-com.foobar.baz.plist
-/Library/LaunchDaemons/com.foobar.baz
-/Library/LaunchDaemons/com.foobar.baz.plist
-```
+- baz
+- com.foobar.baz
+- com.foobar.baz.plist
+- /Library/LaunchDaemons/com.foobar.baz
+- /Library/LaunchDaemons/com.foobar.baz.plist
+
 
 Targeting a macOS system service found in the `/System/*` path will raise an error and terminate without attempting to modify the service state. These services typically cannot be changed unless SIP is disabled.
 
 
-## Configure
+### Examples
 
-Copy `/usr/local/etc/service.default.conf` to `/usr/local/etc/service.conf`. Each line is a reverse domain to search for a service name. This allows short, friendly names without a path or full filename passed as the `[NAME]` argument to be resolved to a file automatically. It's recommended to limit the reverse domains to those you control.
-
-Consider the service `/Library/LaunchDaemons/com.foobar.baz.plist`:
+Start a service:
 
 ```
-# service.conf
-
-com.foobar
+> service start com.bar.foo
 ```
 
+Enable and start a service:
+
 ```
-$ sudo service start baz
-"com.foobar.baz" started
+> sudo service start --enable com.bar.foo
+```
+
+Stop a service:
+
+```
+> service stop com.bar.foo
+```
+
+Stop and disable a service:
+
+```
+> sudo service stop --disable com.bar.foo
+```
+
+Restart a service:
+```
+> service restart com.bar.foo
+```
+
+Enable a service:
+
+```
+> sudo service enable com.bar.foo
+```
+
+Disable a service:
+
+```
+> sudo service disable com.bar.foo
+```
+
+
+## Configuration
+
+Reverse domains can be defined in the file `~/.config/service.toml`. When a service is referenced by name it will be resolved to a file in the current domain using the defined reverse domains. Services cannot be referenced by name only if no reverse domains are defined.
+
+Example configuration:
+
+```
+reverse-domains: [
+  "com.bar.foo",
+  "org.bat.baz"
+]
 ```
 
 

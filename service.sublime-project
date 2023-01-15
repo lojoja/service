@@ -1,14 +1,14 @@
 {
-	"folders": [
-		{
-			"folder_exclude_patterns": [
+  "folders": [
+    {
+      "folder_exclude_patterns": [
         "__pycache__",
         "*.egg-info",
         ".pytest_cache"
-			],
-			"path": "."
-		}
-	],
+      ],
+      "path": "."
+    }
+  ],
   "settings": {
     "LSP": {
       "LSP-pylsp": {
@@ -16,7 +16,20 @@
           "pylsp.plugins.flake8.executable": ".venv/bin/flake8",
           "pylsp.plugins.pylint.executable": ".venv/bin/pylint"
         }
-      }
+      },
+      "ltex-ls": {
+        "settings": {
+          "ltex.dictionary": {
+            "en-US": [
+              "launchctl",
+              "LaunchAgents",
+              "LaunchDaemons",
+              "baz",
+              "plist"
+            ]
+          },
+        }
+      },
     }
   }
 }
