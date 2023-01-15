@@ -26,8 +26,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.10.0"
 click = "^8.0.0"
-clickext = {version = "^0.1.1", source = "lojoja"}
-tomli = "^2.0.1"
+clickext = {version = "^1.0.0", source = "lojoja"}
 
 [tool.poetry.group.dev.dependencies]
 black = "^22.0.0"
@@ -38,7 +37,7 @@ pytest-cov = "^3.0.0"
 pytest-mock = "^3.10.0"
 
 [tool.poetry.scripts]
-service = "service.core:cli"
+service = "service.cli:cli"
 
 [[tool.poetry.source]]
 name = "lojoja"
