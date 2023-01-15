@@ -8,10 +8,13 @@ import logging
 import os
 import pathlib
 
-from service import launchctl
+from . import launchctl
 
 
-logger = logging.getLogger(__package__)
+__all__ = ["locate", "Service"]
+
+
+logger = logging.getLogger(__name__)
 
 
 class Service:
@@ -55,13 +58,13 @@ class Service:
         """
         if self.domain == launchctl.DOMAIN_SYS:
             if self.file.startswith("/System"):
-                raise RuntimeError(f'Service "{self.name}" is a macOS system service')
+                raise RuntimeError(f"{self.name} is a macOS system service")
 
             if self.file.startswith("/Users"):
-                raise RuntimeError(f'Service "{self.name}" is not in the "{self.domain}" domain')
+                raise RuntimeError(f"{self.name} is not in the {self.domain} domain")
         else:
             if not self.file.startswith("/Users"):
-                raise RuntimeError(f'Service "{self.name}" is not in the "{self.domain}" domain')
+                raise RuntimeError(f"{self.name} is not in the {self.domain} domain")
 
 
 def locate(name: str, reverse_domains: list[str]) -> Service:

@@ -1,2 +1,9 @@
-# pylint: disable=c0114
-from service.service import Service, locate  # pyright: ignore[reportUnusedImport,reportUnusedVariable]
+"""
+service
+
+The service public API
+"""
+
+from . import launchctl
+from .service import locate
+from .service import Service

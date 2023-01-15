@@ -10,7 +10,7 @@ import subprocess
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:  # pragma: no cover
-    from service import Service
+    from .service import Service
 
 
 __all__ = ["DOMAIN_GUI", "DOMAIN_SYS", "boot", "change_state"]
@@ -26,7 +26,7 @@ ERROR_SYS_ALREADY_STARTED = 37
 ERROR_SYS_ALREADY_STOPPED = 113
 
 
-logger = logging.getLogger(__package__)
+logger = logging.getLogger(__name__)
 
 
 def _execute(subcommand: str, *args: str) -> None:
@@ -67,10 +67,10 @@ def boot(service: Service, run: bool = False) -> None:
             ERROR_SYS_ALREADY_STARTED,
             ERROR_SYS_ALREADY_STOPPED,
         ]:
-            msg = f'Service "{service.name}" is already {current_state}'
+            msg = f"{service.name} is already {current_state}"
         else:
             reason = " due to SIP" if exc.returncode == ERROR_SIP else ""
-            msg = f'Failed to {action} service "{service.name}"{reason}'
+            msg = f"Failed to {action} {service.name}{reason}"
 
         raise RuntimeError(msg) from exc
 
@@ -96,4 +96,4 @@ def change_state(service: Service, enable: bool = False) -> None:
     try:
         _execute(subcmd, service.id)
     except subprocess.CalledProcessError as exc:
-        raise RuntimeError(f'Failed to {subcmd} "{service.name}"') from exc
+        raise RuntimeError(f"Failed to {subcmd} {service.name}") from exc

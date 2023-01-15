@@ -1,9 +1,10 @@
-# pylint: disable=c0114,c0116,r0913
+# pylint: disable=missing-function-docstring,missing-module-docstring
 
+import os
 import pathlib
 
 import pytest
-from pytest_mock.plugin import MockerFixture
+import pytest_mock
 
 from service import launchctl
 from service import Service, locate
@@ -11,13 +12,15 @@ from service.service import get_paths
 
 
 @pytest.mark.parametrize(
-    ["name", "domain", "id_", "sudo_user", "euid"],
+    ["domain", "id_", "sudo", "euid"],
     [
-        ("service", launchctl.DOMAIN_SYS, f"{launchctl.DOMAIN_SYS}/service", "x", 0),
-        ("service", f"{launchctl.DOMAIN_GUI}/500", "", None, 500),
+        (launchctl.DOMAIN_SYS, f"{launchctl.DOMAIN_SYS}/service", True, 0),
+        (f"{launchctl.DOMAIN_GUI}/500", "", False, 500),
     ],
 )
-def test_service(mocker: MockerFixture, name: str, domain: str, id_: str, sudo_user: str | None, euid: int):
+def test_service(mocker: pytest_mock.MockerFixture, domain: str, id_: str, sudo: bool, euid: int):
+    name = "service"
+    sudo_user = "x" if sudo else ""
     path = pathlib.Path(f"/Library/LaunchDaemons/{name}.plist")
 
     mocker.patch("service.service.os.getenv", return_value=sudo_user)
@@ -33,26 +36,24 @@ def test_service(mocker: MockerFixture, name: str, domain: str, id_: str, sudo_u
 
 
 @pytest.mark.parametrize(
-    ["sudo_user", "base_path", "message"],
+    ["sudo", "base_path", "message"],
     [
-        (None, "/Users/foo", None),
-        (None, "/Library/foo", "domain"),
-        ("x", "/Library/foo", None),
-        ("x", "/System/foo", "macOS"),
-        ("x", "/Users/foo", "domain"),
+        (False, "/Users/foo", ""),
+        (False, "/Library/foo", f"x is not in the {launchctl.DOMAIN_GUI}/{os.geteuid()} domain"),
+        (True, "/Library/foo", ""),
+        (True, "/System/foo", "x is a macOS system service"),
+        (True, "/Users/foo", f"x is not in the {launchctl.DOMAIN_SYS} domain"),
     ],
     ids=["success (gui)", "wrong domain (gui)", "success (sys)", "system service (sys)", "wrong domain (sys)"],
 )
-def test_validate(mocker: MockerFixture, sudo_user: str | None, base_path: str, message: str | None):
-    mocker.patch("service.service.os.getenv", return_value=sudo_user)
+def test_validate(mocker: pytest_mock.MockerFixture, sudo: bool, base_path: str, message: str):
+    mocker.patch("service.service.os.getenv", return_value="x" if sudo else "")
 
     service = Service(pathlib.Path(base_path, "x.plist"))
 
     if message:
-        with pytest.raises(RuntimeError) as exc:
+        with pytest.raises(RuntimeError, match=message):
             service.validate()
-
-        assert message in str(exc)
     else:
         assert service.validate() is None
 
@@ -76,36 +77,32 @@ def test_validate(mocker: MockerFixture, sudo_user: str | None, base_path: str, 
         "full path",
     ],
 )
-def test_locate(mocker: MockerFixture, name: str, exists: bool, reverse_domains: bool, full_path: bool):
+def test_locate(mocker: pytest_mock.MockerFixture, name: str, exists: bool, reverse_domains: bool, full_path: bool):
     mocker.patch("service.service.pathlib.Path.is_file", return_value=exists)
 
     rds = ["com.bar.foo"] if reverse_domains else []
 
     if not exists or not reverse_domains:
-        with pytest.raises(ValueError) as exc:
+        match = "No reverse domains configured" if exists else f'Service "{name}" not found'
+        with pytest.raises(ValueError, match=match):
             locate(name, rds)
-
-        if not exists:
-            assert "not found" in str(exc)
-        else:
-            assert "configured" in str(exc)
     else:
         result = locate(name, rds)
 
-        assert result.name == pathlib.Path(name).stem if full_path else "com.bar.foo.xserv"
-        assert (
-            result.file == str(pathlib.Path(name).absolute())
-            if full_path
-            else str(pathlib.Path("~/Library/LaunchAgents/com.bar.foo.xserv").expanduser())
-        )
+        if full_path:
+            assert result.name == pathlib.Path(name).stem
+            assert result.file == str(pathlib.Path(name).absolute())
+        else:
+            assert result.name == "com.bar.foo.xserv"
+            assert result.file == str(pathlib.Path("~/Library/LaunchAgents/com.bar.foo.xserv.plist").expanduser())
 
 
 @pytest.mark.parametrize(
-    ["sudo_user", "paths"],
+    ["sudo", "paths"],
     [
-        (None, [str(pathlib.Path.home() / "Library/LaunchAgents")]),
+        (False, [str(pathlib.Path.home() / "Library/LaunchAgents")]),
         (
-            "x",
+            True,
             [
                 "/Library/LaunchAgents",
                 "/Library/LaunchDaemons",
@@ -113,20 +110,18 @@ def test_locate(mocker: MockerFixture, name: str, exists: bool, reverse_domains:
                 "/System/Library/LaunchDaemons",
             ],
         ),
-        ("x", []),
+        (True, []),
     ],
     ids=["gui domain paths", "sys domain paths", "no paths found"],
 )
-def test_get_paths(mocker: MockerFixture, sudo_user: str | None, paths: list[str]):
-    mocker.patch("service.service.os.getenv", return_value=sudo_user)
+def test_get_paths(mocker: pytest_mock.MockerFixture, sudo: bool, paths: list[str]):
+    mocker.patch("service.service.os.getenv", return_value="x" if sudo else "")
 
     if not paths:
         mocker.patch("service.service.pathlib.Path.is_dir", return_value=False)
 
-        with pytest.raises(ValueError) as exc:
+        with pytest.raises(ValueError, match="No service paths found"):
             result = get_paths()
-
-        assert "found" in str(exc)
     else:
         result = get_paths()
 

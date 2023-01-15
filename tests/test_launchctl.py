@@ -1,10 +1,10 @@
-# pylint: disable=c0114,c0116,r0913
+# pylint: disable=missing-function-docstring,missing-module-docstring
 
 import pathlib
 import subprocess
 
 import pytest
-from pytest_mock.plugin import MockerFixture
+import pytest_mock
 
 from service import launchctl
 from service import Service
@@ -24,14 +24,14 @@ def test__execute_command(tmp_path: pathlib.Path):
 @pytest.mark.parametrize(
     ["run", "returncode", "message"],
     [
-        (True, 0, None),
-        (False, 0, None),
-        (True, launchctl.ERROR_GUI_ALREADY_STARTED, "started"),
-        (True, launchctl.ERROR_SYS_ALREADY_STARTED, "started"),
-        (True, 10000, "Failed"),
-        (True, launchctl.ERROR_SIP, "due to SIP"),
-        (False, launchctl.ERROR_GUI_ALREADY_STOPPED, "stopped"),
-        (False, launchctl.ERROR_SYS_ALREADY_STOPPED, "stopped"),
+        (True, 0, ""),
+        (False, 0, ""),
+        (True, launchctl.ERROR_GUI_ALREADY_STARTED, "x is already started"),
+        (True, launchctl.ERROR_SYS_ALREADY_STARTED, "x is already started"),
+        (True, 10000, "Failed to start x"),
+        (True, launchctl.ERROR_SIP, "Failed to start x due to SIP"),
+        (False, launchctl.ERROR_GUI_ALREADY_STOPPED, "x is already stopped"),
+        (False, launchctl.ERROR_SYS_ALREADY_STOPPED, "x is already stopped"),
     ],
     ids=[
         "success (start)",
@@ -44,12 +44,7 @@ def test__execute_command(tmp_path: pathlib.Path):
         "stop already stopped (sys)",
     ],
 )
-def test_boot(
-    mocker: MockerFixture,
-    run: bool,
-    returncode: int,
-    message: str | None,
-):
+def test_boot(mocker: pytest_mock.MockerFixture, run: bool, returncode: int, message: str):
     service = Service(pathlib.Path("x"))
 
     if message:
@@ -66,12 +61,18 @@ def test_boot(
 
 
 @pytest.mark.parametrize(
-    ["sudo_user", "enable", "message"],
-    [(None, True, "domain"), ("x", True, None), ("x", False, None), ("x", True, "Failed")],
-    ids=["non-system domain", "success (enable)", "success (disable)", "failed"],
+    ["sudo", "enable", "message"],
+    [
+        (False, True, "Cannot change service state"),
+        (True, True, ""),
+        (True, True, "Failed to enable x"),
+        (True, False, ""),
+        (True, False, "Failed to disable x"),
+    ],
+    ids=["non-system domain", "enable (success)", "enable (fail)", "disable (success)", "disable (fail)"],
 )
-def test_change_state(mocker: MockerFixture, sudo_user: str | None, enable: bool, message: str):
-    mocker.patch("service.service.os.getenv", return_value=sudo_user)
+def test_change_state(mocker: pytest_mock.MockerFixture, sudo: bool, enable: bool, message: str):
+    mocker.patch("service.service.os.getenv", return_value="x" if sudo else "")
 
     service = Service(pathlib.Path("x"))
 
