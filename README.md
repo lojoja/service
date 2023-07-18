@@ -6,21 +6,13 @@ Extremely basic launchctl wrapper for macOS.
 ## Requirements
 
 * macOS 12.x+
-* Python 3.10.x+
+* Python 3.10.x, 3.11.x
 
 
 ## Installation
 
-### Local
-
 ```
-pip install --trusted-host=gitea.lojoja.com --extra-index-url=https://gitea.lojoja.com/api/packages/lojoja/pypi/simple service
-```
-
-### Remote
-
-```
-pip install git+ssh://github.com/lojoja/service@main
+pip install py-service
 ```
 
 
@@ -53,8 +45,7 @@ Services can be referenced by name, file name (with or without extension), or th
 - /Library/LaunchDaemons/com.foobar.baz
 - /Library/LaunchDaemons/com.foobar.baz.plist
 
-
-Targeting a macOS system service found in the `/System/*` path will raise an error and terminate without attempting to modify the service state. These services typically cannot be changed unless SIP is disabled.
+**Note:** Targeting a macOS system service found in the `/System/*` path will raise an error and terminate without attempting to modify the service state. These services typically cannot be changed unless SIP is disabled.
 
 
 ### Examples
@@ -108,7 +99,7 @@ Reverse domains can be defined in the file `~/.config/service.toml`. When a serv
 Example configuration:
 
 ```
-reverse-domains: [
+reverse-domains = [
   "com.bar.foo",
   "org.bat.baz"
 ]

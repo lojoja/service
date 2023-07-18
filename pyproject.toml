@@ -14,17 +14,18 @@ authors = [
 packages = [
     {include = "service"}
 ]
-homepage = "https://gitea.lojoja.com/lojoja/service"
-repository = "https://gitea.lojoja.com/lojoja/service"
-documentation = "https://gitea.lojoja.com/lojoja/service"
+homepage = "https://github.com/lojoja/service"
+repository = "https://github.com/lojoja/service"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
-  'Environment :: Console',
-  "License :: OSI Approved :: MIT License",
-  'Operating System :: MacOS :: MacOS X',
+  "Operating System :: MacOS :: MacOS X",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
 ]
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/lojoja/service/issues"
 
 [tool.poetry.dependencies]
 python = "^3.10.0"
