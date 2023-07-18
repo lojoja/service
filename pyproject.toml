@@ -29,7 +29,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.10.0"
 click = "^8.0.0"
-clickext = {version = "^1.0.0", source = "lojoja"}
+clickext = "^1.0.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^22.0.0"
@@ -41,10 +41,6 @@ pytest-mock = "^3.10.0"
 
 [tool.poetry.scripts]
 service = "service.cli:cli"
-
-[[tool.poetry.source]]
-name = "lojoja"
-url = "https://gitea.lojoja.com/api/packages/lojoja/pypi/simple"
 
 [tool.black]
 line-length = 120
