@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "py-service"
-version = "2.0.1dev"
+version = "2.0.1"
 description = "Extremely basic launchctl wrapper for macOS."
 readme = "README.md"
 license = "MIT"
