@@ -53,7 +53,7 @@ def get_service(ctx: click.Context, param: click.Parameter, value: str) -> None:
 
 @click.group(cls=ClickextGroup, global_opts=["config", "verbose"], shared_params=["name"])
 @click.argument("name", nargs=1, callback=get_service, expose_value=False, type=click.STRING)
-@click.version_option()
+@click.version_option(package_name="py_service")
 @config_option(CONFIG_FILE, processor=get_reverse_domains)
 @verbose_option(logger)
 def cli() -> None:
