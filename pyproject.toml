@@ -3,13 +3,16 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "service"
+name = "py-service"
 version = "2.0.1dev"
 description = "Extremely basic launchctl wrapper for macOS."
 readme = "README.md"
 license = "MIT"
 authors = [
   "lojoja <dev@lojoja.com>"
+]
+packages = [
+    {include = "service"}
 ]
 homepage = "https://gitea.lojoja.com/lojoja/service"
 repository = "https://gitea.lojoja.com/lojoja/service"
