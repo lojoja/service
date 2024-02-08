@@ -3,10 +3,11 @@ name: Tests
 on:
   push:
     branches: [main, dev]
-    paths-ignore: ['*.md', '*.sublime-project', 'LICENSE']
+    paths-ignore: ["*.md", "*.sublime-project", "LICENSE"]
   pull_request:
     branches: [main, dev]
-    paths-ignore: ['*.md', '*.sublime-project', 'LICENSE']
+    paths-ignore: ["*.md", "*.sublime-project", "LICENSE"]
+  workflow_dispatch:
 
 jobs:
   tests:
@@ -15,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.10', '3.11']
+        python-version: ["3.10", "3.11"]
     steps:
       - name: Check out repository
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
@@ -29,4 +30,4 @@ jobs:
       - name: Install project
         run: poetry install
       - name: Run tests
-        run: poetry run pytest
+        run: poetry run pytest --cov
