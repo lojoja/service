@@ -72,6 +72,12 @@ def plist_fixture(tmp_path: Path) -> Path:
     return file
 
 
+def test_cli_verifies_platform(mocker: MockerFixture):
+    mock_verify_platform = mocker.patch("service.cli.verify_platform")
+    CliRunner().invoke(cli, ["start", "--help"])  # arbitrary no-op command
+    mock_verify_platform.assert_called_once()
+
+
 @pytest.mark.usefixtures("config")
 @pytest.mark.parametrize("should_fail", [True, False])
 def test_cli_disable(mocker: MockerFixture, plist: Path, should_fail: bool):
