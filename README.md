@@ -2,19 +2,16 @@
 
 Extremely basic launchctl wrapper for macOS.
 
-
 ## Requirements
 
-* macOS 12.x+
-* Python 3.10.x, 3.11.x
-
+- macOS 12.x+
+- Python 3.10.x, 3.11.x
 
 ## Installation
 
 ```
 pip install py-service
 ```
-
 
 ## Usage
 
@@ -47,7 +44,6 @@ Services can be referenced by name, file name (with or without extension), or th
 
 **Note:** Targeting a macOS system service found in the `/System/*` path will raise an error and terminate without attempting to modify the service state. These services typically cannot be changed unless SIP is disabled.
 
-
 ### Examples
 
 Start a service:
@@ -75,6 +71,7 @@ Stop and disable a service:
 ```
 
 Restart a service:
+
 ```
 > service restart com.bar.foo
 ```
@@ -91,7 +88,6 @@ Disable a service:
 > sudo service disable com.bar.foo
 ```
 
-
 ## Configuration
 
 Reverse domains can be defined in the file `~/.config/service.toml`. When a service is referenced by name it will be resolved to a file in the current domain using the defined reverse domains. Services cannot be referenced by name only if no reverse domains are defined.
@@ -104,7 +100,6 @@ reverse-domains = [
   "org.bat.baz"
 ]
 ```
-
 
 ## License
 
