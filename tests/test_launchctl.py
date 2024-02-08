@@ -1,89 +1,96 @@
-# pylint: disable=missing-function-docstring,missing-module-docstring
+# pylint: disable=missing-module-docstring,missing-function-docstring,protected-access
 
-import pathlib
+from contextlib import nullcontext as does_not_raise
+from pathlib import Path
 import subprocess
 
 import pytest
-import pytest_mock
+from pytest_mock import MockerFixture
 
-from service import launchctl
-from service import Service
+from service.launchctl import (
+    _execute,
+    boot,
+    change_state,
+    DOMAIN_GUI,
+    DOMAIN_SYS,
+    ERROR_GUI_ALREADY_STARTED,
+    ERROR_GUI_ALREADY_STOPPED,
+    ERROR_SIP,
+    ERROR_SYS_ALREADY_STARTED,
+    ERROR_SYS_ALREADY_STOPPED,
+)
+from service.service import Service
 
 
-def test__execute_command(tmp_path: pathlib.Path):
-    path = str(tmp_path / "x.plist")
+def test__execute(mocker: MockerFixture):
+    subcommand = "bootstrap"
+    subcommand_args = [DOMAIN_GUI, "/foo"]
+    subprocess_mock = mocker.patch("service.launchctl.subprocess.run")
 
-    # The call fails intentionally so the constructed command can be tested.
-    try:
-        launchctl._execute("bootstrap", launchctl.DOMAIN_GUI, str(path))  # pylint: disable=w0212
-    except subprocess.CalledProcessError as exc:
-        assert exc.cmd == ["launchctl", "bootstrap", launchctl.DOMAIN_GUI, str(path)]
-        assert exc.returncode > 0
+    _execute(subcommand, *subcommand_args)
+
+    subprocess_mock.assert_called_once_with(
+        ["launchctl", subcommand, *subcommand_args], check=True, capture_output=True
+    )
 
 
 @pytest.mark.parametrize(
-    ["run", "returncode", "message"],
+    "return_code",
     [
-        (True, 0, ""),
-        (False, 0, ""),
-        (True, launchctl.ERROR_GUI_ALREADY_STARTED, "x is already started"),
-        (True, launchctl.ERROR_SYS_ALREADY_STARTED, "x is already started"),
-        (True, 10000, "Failed to start x"),
-        (True, launchctl.ERROR_SIP, "Failed to start x due to SIP"),
-        (False, launchctl.ERROR_GUI_ALREADY_STOPPED, "x is already stopped"),
-        (False, launchctl.ERROR_SYS_ALREADY_STOPPED, "x is already stopped"),
-    ],
-    ids=[
-        "success (start)",
-        "success (stop)",
-        "start already running (gui)",
-        "start already running (sys)",
-        "failed",
-        "failed (SIP)",
-        "stop already stopped (gui)",
-        "stop already stopped (sys)",
+        0,
+        ERROR_GUI_ALREADY_STARTED,
+        ERROR_GUI_ALREADY_STOPPED,
+        ERROR_SIP,
+        ERROR_SYS_ALREADY_STARTED,
+        ERROR_SYS_ALREADY_STOPPED,
     ],
 )
-def test_boot(mocker: pytest_mock.MockerFixture, run: bool, returncode: int, message: str):
-    service = Service(pathlib.Path("x"))
+@pytest.mark.parametrize("run", [True, False])
+def test_boot(mocker: MockerFixture, run: bool, return_code: int):
+    mock_run = mocker.patch("service.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
+    context = does_not_raise()
+    service = Service(Path("xserv.plist"))
 
-    if message:
-        mocker.patch("service.launchctl.subprocess.run", side_effect=subprocess.CalledProcessError(returncode, []))
+    if return_code != 0:
+        if return_code in [10000, ERROR_SIP]:
+            msg = f"Failed to {'start' if run else 'stop'} {service.name}"
+            msg += " due to SIP" if return_code == ERROR_SIP else ""
+        else:
+            msg = f"{service.name} is already {'started' if run else 'stopped'}"
 
-        with pytest.raises(RuntimeError) as exc:
-            launchctl.boot(service, run)
+        mock_run.side_effect = subprocess.CalledProcessError(return_code, [])
+        context = pytest.raises(RuntimeError, match=msg)
 
-        assert message in str(exc)
+    with context:
+        boot(service, run=run)
+
+    mock_run.assert_called_once_with(
+        ["launchctl", "bootstrap" if run else "bootout", service.domain, service.file], check=True, capture_output=True
+    )
+
+
+@pytest.mark.parametrize("should_fail", [True, False])
+@pytest.mark.parametrize("subcmd", ["enable", "disable"])
+@pytest.mark.parametrize("domain", [DOMAIN_SYS, DOMAIN_GUI])
+def test_change_state(mocker: MockerFixture, domain: str, subcmd: str, should_fail: bool):
+    mocker.patch("service.service.os.getenv", return_value="x" if domain == DOMAIN_SYS else "")
+    mock_run = mocker.patch("service.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
+    context = does_not_raise()
+    service = Service(Path("xserv.plist"))
+
+    if should_fail or domain == DOMAIN_GUI:  # The gui domain should always fail regardless of the test param
+        if domain == DOMAIN_GUI:
+            msg = f'Cannot change service state in the "{service.domain}" domain'
+        else:
+            msg = f"Failed to {subcmd} {service.name}"
+
+        mock_run.side_effect = subprocess.CalledProcessError(1, [])
+        context = pytest.raises(RuntimeError, match=msg)
+
+    with context:
+        change_state(service, enable=subcmd == "enable")
+
+    if domain == DOMAIN_GUI:
+        mock_run.assert_not_called()
     else:
-        mocker.patch("service.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], returncode))
-
-        assert launchctl.boot(service, run) is None
-
-
-@pytest.mark.parametrize(
-    ["sudo", "enable", "message"],
-    [
-        (False, True, "Cannot change service state"),
-        (True, True, ""),
-        (True, True, "Failed to enable x"),
-        (True, False, ""),
-        (True, False, "Failed to disable x"),
-    ],
-    ids=["non-system domain", "enable (success)", "enable (fail)", "disable (success)", "disable (fail)"],
-)
-def test_change_state(mocker: pytest_mock.MockerFixture, sudo: bool, enable: bool, message: str):
-    mocker.patch("service.service.os.getenv", return_value="x" if sudo else "")
-
-    service = Service(pathlib.Path("x"))
-
-    if message:
-        mocker.patch("service.launchctl.subprocess.run", side_effect=subprocess.CalledProcessError(1, []))
-
-        with pytest.raises(RuntimeError) as exc:
-            launchctl.change_state(service, enable)
-
-        assert message in str(exc)
-    else:
-        mocker.patch("service.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
-
-        assert launchctl.boot(service, enable) is None
+        mock_run.assert_called_once_with(["launchctl", subcmd, service.id], check=True, capture_output=True)

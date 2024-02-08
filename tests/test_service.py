@@ -1,130 +1,113 @@
-# pylint: disable=missing-function-docstring,missing-module-docstring
+# pylint: disable=missing-module-docstring,missing-function-docstring
 
-import os
-import pathlib
+from contextlib import nullcontext as does_not_raise
+from pathlib import Path
 
 import pytest
-import pytest_mock
+from pytest_mock import MockerFixture
 
-from service import launchctl
-from service import Service, locate
-from service.service import get_paths
+from service.launchctl import DOMAIN_GUI, DOMAIN_SYS
+from service.service import Service, get_paths, locate
 
 
-@pytest.mark.parametrize(
-    ["domain", "id_", "sudo", "euid"],
-    [
-        (launchctl.DOMAIN_SYS, f"{launchctl.DOMAIN_SYS}/service", True, 0),
-        (f"{launchctl.DOMAIN_GUI}/500", "", False, 500),
-    ],
-)
-def test_service(mocker: pytest_mock.MockerFixture, domain: str, id_: str, sudo: bool, euid: int):
-    name = "service"
-    sudo_user = "x" if sudo else ""
-    path = pathlib.Path(f"/Library/LaunchDaemons/{name}.plist")
-
-    mocker.patch("service.service.os.getenv", return_value=sudo_user)
-    mocker.patch("service.service.os.geteuid", return_value=euid)
-
+@pytest.mark.parametrize("domain", [DOMAIN_SYS, DOMAIN_GUI])
+def test_service(mocker: MockerFixture, domain: str):
+    mocker.patch("service.service.os.getenv", return_value="x" if domain == DOMAIN_SYS else "")
+    mocker.patch("service.service.os.geteuid", return_value=0 if domain == DOMAIN_SYS else 500)
+    path = Path("xserv.plist")
     service = Service(path)
 
-    assert service.domain == domain
+    assert service.domain == f"{domain}{'/500' if domain == DOMAIN_GUI else ''}"
     assert service.file == str(path.absolute())
-    assert service.id == id_
-    assert service.name == name
-    assert str(service.path) == str(path)
+    assert service.id == (f"{DOMAIN_SYS}/{path.stem}" if domain == DOMAIN_SYS else "")
+    assert service.name == path.stem
+    assert service.path == path
 
 
 @pytest.mark.parametrize(
-    ["sudo", "base_path", "message"],
-    [
-        (False, "/Users/foo", ""),
-        (False, "/Library/foo", f"x is not in the {launchctl.DOMAIN_GUI}/{os.geteuid()} domain"),
-        (True, "/Library/foo", ""),
-        (True, "/System/foo", "x is a macOS system service"),
-        (True, "/Users/foo", f"x is not in the {launchctl.DOMAIN_SYS} domain"),
-    ],
-    ids=["success (gui)", "wrong domain (gui)", "success (sys)", "system service (sys)", "wrong domain (sys)"],
+    "base_path", ["/Library/LaunchAgents", "/System/Library/LaunchAgents", "/Users/foo/Library/LaunchAgents"]
 )
-def test_validate(mocker: pytest_mock.MockerFixture, sudo: bool, base_path: str, message: str):
-    mocker.patch("service.service.os.getenv", return_value="x" if sudo else "")
+@pytest.mark.parametrize("domain", [DOMAIN_SYS, DOMAIN_GUI])
+def test_service_validate(mocker: MockerFixture, domain: str, base_path: str):
+    mocker.patch("service.service.os.getenv", return_value="x" if domain == DOMAIN_SYS else "")
+    mocker.patch("service.service.os.geteuid", return_value=0 if domain == DOMAIN_SYS else 500)
+    service = Service(Path(base_path, "xserv.plist"))
+    context = does_not_raise()
 
-    service = Service(pathlib.Path(base_path, "x.plist"))
+    if domain == DOMAIN_SYS and base_path.startswith("/System"):
+        context = pytest.raises(RuntimeError, match=f"{service.name} is a macOS system service")
+    elif domain == DOMAIN_SYS and base_path.startswith("/Users"):
+        context = pytest.raises(RuntimeError, match=f"{service.name} is not in the {DOMAIN_SYS} domain")
+    elif domain == DOMAIN_GUI and not base_path.startswith("/Users"):
+        context = pytest.raises(RuntimeError, match=f"{service.name} is not in the {DOMAIN_GUI}/500 domain")
 
-    if message:
-        with pytest.raises(RuntimeError, match=message):
-            service.validate()
-    else:
-        assert service.validate() is None
+    with context:
+        service.validate()
 
 
 @pytest.mark.parametrize(
-    ["name", "exists", "reverse_domains", "full_path"],
+    "name",
     [
-        ("xserv.plist", True, True, False),
-        ("xserv", True, True, False),
-        ("xserv", True, False, False),
-        ("xserv", False, True, False),
-        ("com.bar.foo.xserv.plist", True, True, False),
-        ("/Users/foo/xserv.plist", True, True, True),
-    ],
-    ids=[
-        "name with extension",
-        "name without ext",
-        "no reverse domains",
-        "does not exist",
-        "reverse domain in name",
-        "full path",
+        "xserv",
+        "xserv.plist",
+        "org.foo.xserv",
+        "org.foo.xserv.plist",
+        "dir/xserv",
+        "dir/xserv.plist",
+        "dir/org.foo.xserv",
+        "dir/org.foo.xserv.plist",
+        "/Users/foo/xserv",
+        "/Users/foo/xserv.plist",
+        "/Users/foo/org.foo.xserv",
+        "/Users/foo/org.foo.xserv.plist",
     ],
 )
-def test_locate(mocker: pytest_mock.MockerFixture, name: str, exists: bool, reverse_domains: bool, full_path: bool):
+@pytest.mark.parametrize("reverse_domains", [[], ["com.foo.bar"]])
+@pytest.mark.parametrize("exists", [True, False])
+def test_locate(mocker: MockerFixture, exists: bool, reverse_domains: list[str], name: str):
+    mocker.patch("service.service.os.getenv", return_value="")
     mocker.patch("service.service.pathlib.Path.is_file", return_value=exists)
+    name_has_path = len(name.split("/")) > 1
+    name_has_reverse_domain = len(name.split(".")) > 2
 
-    rds = ["com.bar.foo"] if reverse_domains else []
+    context = does_not_raise()
 
-    if not exists or not reverse_domains:
-        match = "No reverse domains configured" if exists else f'Service "{name}" not found'
-        with pytest.raises(ValueError, match=match):
-            locate(name, rds)
-    else:
-        result = locate(name, rds)
+    if not reverse_domains and not name_has_path and not name_has_reverse_domain:
+        context = pytest.raises(ValueError, match="No reverse domains configured")
+    elif not exists:
+        context = pytest.raises(ValueError, match=f'Service "{name}" not found')
 
-        if full_path:
-            assert result.name == pathlib.Path(name).stem
-            assert result.file == str(pathlib.Path(name).absolute())
-        else:
-            assert result.name == "com.bar.foo.xserv"
-            assert result.file == str(pathlib.Path("~/Library/LaunchAgents/com.bar.foo.xserv.plist").expanduser())
+    with context:
+        result = locate(name, reverse_domains)
 
-
-@pytest.mark.parametrize(
-    ["sudo", "paths"],
-    [
-        (False, [str(pathlib.Path.home() / "Library/LaunchAgents")]),
-        (
-            True,
+    if isinstance(context, does_not_raise):
+        resolved_name = "".join(
             [
-                "/Library/LaunchAgents",
-                "/Library/LaunchDaemons",
-                "/System/Library/LaunchAgents",
-                "/System/Library/LaunchDaemons",
-            ],
-        ),
-        (True, []),
-    ],
-    ids=["gui domain paths", "sys domain paths", "no paths found"],
-)
-def test_get_paths(mocker: pytest_mock.MockerFixture, sudo: bool, paths: list[str]):
-    mocker.patch("service.service.os.getenv", return_value="x" if sudo else "")
+                "" if name_has_path else "~/Library/LaunchAgents/",
+                "" if name_has_path or name_has_reverse_domain else f"{reverse_domains[0]}.",
+                name,
+                "" if name.endswith(".plist") else ".plist",
+            ]
+        )
 
-    if not paths:
-        mocker.patch("service.service.pathlib.Path.is_dir", return_value=False)
+        assert result.path == Path(resolved_name).expanduser().absolute()
 
-        with pytest.raises(ValueError, match="No service paths found"):
-            result = get_paths()
-    else:
+
+@pytest.mark.parametrize("exists", [True, False])
+@pytest.mark.parametrize("domain", [DOMAIN_SYS, DOMAIN_GUI])
+def test_get_paths(mocker: MockerFixture, domain: str, exists: bool):
+    mocker.patch("service.service.os.getenv", return_value="x" if domain == DOMAIN_SYS else "")
+    mocker.patch("service.service.pathlib.Path.is_dir", return_value=exists)
+    paths = [
+        Path(base, path)
+        for base in (["/", "/System"] if domain == DOMAIN_SYS else [Path.home()])
+        for path in ["Library/LaunchAgents", "Library/LaunchDaemons"]
+    ]
+    context = does_not_raise() if exists else pytest.raises(ValueError, match="No service paths found")
+
+    with context:
         result = get_paths()
 
+    if exists:
         assert len(result) == len(paths)
-        for path in result:
-            assert str(path) in paths
+        assert all(path in result for path in paths)

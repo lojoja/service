@@ -1,179 +1,164 @@
-# pylint: disable=missing-function-docstring,missing-module-docstring
+# pylint: disable=missing-module-docstring,missing-function-docstring
 
-import pathlib
+from contextlib import nullcontext as does_not_raise
+from pathlib import Path
 import subprocess
 import typing as t
 
 import click
 from click.testing import CliRunner
 import pytest
-import pytest_mock
+from pytest_mock import MockerFixture
 
-import service.cli
-
-
-@pytest.mark.parametrize(
-    ["data", "rev_domains", "output"],
-    [
-        ({"reverse-domains": ["com.foo.bar"]}, ["com.foo.bar"], ""),
-        (None, [], ""),
-        ({}, [], ""),
-        ({"reverse-domains": {}}, [], 'Warning: Invalid configuration file. "reverse-domains" must be a list.\n'),
-    ],
-    ids=["config ok", "no data", "config key missing", "config invalid"],
-)
-def test_get_reverse_domains(
-    capsys: pytest.CaptureFixture, data: t.Optional[dict[str, list[str]]], rev_domains: list[str], output: str
-):
-    result = service.cli.get_reverse_domains(data)
-    captured = capsys.readouterr()
-
-    assert result == rev_domains
-    assert captured.err == output
+from service.cli import cli, get_service, get_reverse_domains, verify_platform, MACOS_MIN_VERSION
+from service.service import Service
 
 
-@pytest.mark.parametrize(
-    ["name", "version", "message"],
-    [
-        ("Darwin", str(service.cli.MACOS_MIN_VERSION), None),
-        ("x", str(service.cli.MACOS_MIN_VERSION), "requires"),
-        ("Darwin", str(service.cli.MACOS_MIN_VERSION - 1), str(service.cli.MACOS_MIN_VERSION)),
-    ],
-    ids=["supported", "unsupported (system)", "unsupported (version)"],
-)
-def test_verify_platform(mocker: pytest_mock.MockerFixture, name: str, version: str, message: str):
+@pytest.mark.parametrize("data", [None, {}, {"reverse-domains": ["com.foo.bar"]}, {"reverse-domains": {}}])
+def test_get_reverse_domains(capsys: pytest.CaptureFixture, data: t.Optional[dict[str, list[str]]]):
+    reverse_domains = data.get("reverse-domains", []) if isinstance(data, dict) else []
+    output = ""
+
+    if not isinstance(reverse_domains, list):
+        reverse_domains = []
+        output = 'Warning: Invalid configuration file. "reverse-domains" must be a list.\n'
+
+    result = get_reverse_domains(data)
+
+    assert result == reverse_domains
+    assert capsys.readouterr().err == output
+
+
+def test_get_service(mocker: MockerFixture):
+    mocker.patch("service.cli.pathlib.Path.is_file", return_value=True)
+    ctx = click.Context(click.Command("cmd"))
+    ctx.obj = ["com.foo.bar"]
+
+    get_service(ctx, click.Option(["-x"]), "name")
+
+    assert isinstance(ctx.obj, Service)
+    assert ctx.obj.path == Path("~/Library/LaunchAgents/com.foo.bar.name.plist").expanduser().absolute()
+
+
+@pytest.mark.parametrize("version_offset", [-1, 0, 1])
+@pytest.mark.parametrize("name", ["Darwin", "x"])
+def test_verify_platform(mocker: MockerFixture, name: str, version_offset: int):
     mocker.patch("service.cli.platform.system", return_value=name)
-    mocker.patch("service.cli.platform.mac_ver", return_value=[version])
+    mocker.patch("service.cli.platform.mac_ver", return_value=[str(MACOS_MIN_VERSION + version_offset)])
+    context = does_not_raise()
 
-    if message:
-        with pytest.raises(click.ClickException) as exc:
-            service.cli.verify_platform()
+    if name != "Darwin":
+        context = pytest.raises(click.ClickException, match=r".* requires macOS$")
+    elif version_offset < 0:
+        context = pytest.raises(click.ClickException, match=rf".* requires macOS {MACOS_MIN_VERSION} or higher")
 
-        assert message in str(exc)
-    else:
-        assert service.cli.verify_platform() is None
+    with context:
+        verify_platform()
 
 
-@pytest.fixture(name="config_file")
-def fixture_config_file(tmp_path: pathlib.Path):
-    data = 'reverse-domains = ["com.bar.foo"]\n'
+@pytest.fixture(name="config")
+def config_fixture(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    """Creates a config file and monkeypatches the CONFIG_FILE variable to read it in tests automatically."""
     file = tmp_path / "config.toml"
-    file.write_text(data)
+    file.write_text('reverse-domains = ["com.bar.foo"]\n', encoding="utf8")
+    monkeypatch.setattr("service.cli.CONFIG_FILE", file)
+
+
+@pytest.fixture(name="plist")
+def plist_fixture(tmp_path: Path) -> Path:
+    """Creates a service plist and returns the path to use in tests."""
+    file = tmp_path / "xserv.plist"
+    file.write_text("", encoding="utf8")
     return file
 
 
-@pytest.mark.parametrize(["error"], [(False,), (True,)], ids=["success", "fail"])
-def test_cli_disable(mocker: pytest_mock.MockerFixture, config_file: pathlib.Path, error: bool):
-    mocker.patch("service.cli.os.getenv", return_value="x")
-    mocker.patch(
-        "service.launchctl.subprocess.run",
-        return_value=subprocess.CompletedProcess([], 0),
-        side_effect=subprocess.CalledProcessError(1, []) if error else None,
-    )
-    mocker.patch("service.service.pathlib.Path.is_file", return_value=True)
+@pytest.mark.usefixtures("config")
+@pytest.mark.parametrize("should_fail", [True, False])
+def test_cli_disable(mocker: MockerFixture, plist: Path, should_fail: bool):
+    mocker.patch("service.cli.os.getenv", return_value="x")  # use system domain
+    mock_run = mocker.patch("service.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
+    output = f"{plist.stem} disabled\n"
+
+    if should_fail:
+        mock_run.side_effect = subprocess.CalledProcessError(1, [])
+        output = f"Error: Failed to disable {plist.stem}\n"
 
     runner = CliRunner()
-    result = runner.invoke(service.cli.cli, ["--config", str(config_file), "disable", "srvc"])
+    result = runner.invoke(cli, ["disable", str(plist.absolute())])
 
-    if error:
-        assert result.exit_code == 1
-        assert result.output == "Error: Failed to disable com.bar.foo.srvc\n"
-    else:
-        assert result.exit_code == 0
-        assert result.output == "com.bar.foo.srvc disabled\n"
+    assert result.exit_code == int(should_fail)
+    assert result.output == output
 
 
-@pytest.mark.parametrize(["error"], [(False,), (True,)], ids=["success", "fail"])
-def test_cli_enable(mocker: pytest_mock.MockerFixture, config_file: pathlib.Path, error: bool):
-    mocker.patch("service.cli.os.getenv", return_value="x")
-    mocker.patch(
-        "service.launchctl.subprocess.run",
-        return_value=subprocess.CompletedProcess([], 0),
-        side_effect=subprocess.CalledProcessError(1, []) if error else None,
-    )
-    mocker.patch("service.service.pathlib.Path.is_file", return_value=True)
+@pytest.mark.usefixtures("config")
+@pytest.mark.parametrize("should_fail", [True, False])
+def test_cli_enable(mocker: MockerFixture, plist: Path, should_fail: bool):
+    mocker.patch("service.cli.os.getenv", return_value="x")  # use system domain
+    mock_run = mocker.patch("service.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
+    output = f"{plist.stem} enabled\n"
+
+    if should_fail:
+        mock_run.side_effect = subprocess.CalledProcessError(1, [])
+        output = f"Error: Failed to enable {plist.stem}\n"
 
     runner = CliRunner()
-    result = runner.invoke(service.cli.cli, ["--config", str(config_file), "enable", "srvc"])
+    result = runner.invoke(cli, ["enable", str(plist.absolute())])
 
-    if error:
-        assert result.exit_code == 1
-        assert result.output == "Error: Failed to enable com.bar.foo.srvc\n"
-    else:
-        assert result.exit_code == 0
-        assert result.output == "com.bar.foo.srvc enabled\n"
+    assert result.exit_code == int(should_fail)
+    assert result.output == output
 
 
-@pytest.mark.parametrize(["error"], [(False,), (True,)], ids=["success", "fail"])
-def test_cli_restart(mocker: pytest_mock.MockerFixture, config_file: pathlib.Path, error: bool):
-    mocker.patch("service.cli.os.getenv", return_value="x")
-    mocker.patch(
-        "service.launchctl.subprocess.run",
-        return_value=subprocess.CompletedProcess([], 0),
-        side_effect=subprocess.CalledProcessError(1, []) if error else None,
-    )
-    mocker.patch("service.service.pathlib.Path.is_file", return_value=True)
+@pytest.mark.usefixtures("config")
+@pytest.mark.parametrize("should_fail", [True, False])
+def test_cli_restart(mocker: MockerFixture, plist: Path, should_fail: bool):
+    mocker.patch("service.cli.os.getenv", return_value="x")  # use system domain
+    mock_run = mocker.patch("service.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
+    output = f"{plist.stem} restarted\n"
+
+    if should_fail:
+        mock_run.side_effect = subprocess.CalledProcessError(1, [])
+        output = f"Error: Failed to stop {plist.stem}\n"
 
     runner = CliRunner()
-    result = runner.invoke(service.cli.cli, ["--config", str(config_file), "restart", "srvc"])
+    result = runner.invoke(cli, ["restart", str(plist.absolute())])
 
-    if error:
-        assert result.exit_code == 1
-        assert result.output == "Error: Failed to stop com.bar.foo.srvc\n"
-    else:
-        assert result.exit_code == 0
-        assert result.output == "com.bar.foo.srvc restarted\n"
+    assert result.exit_code == int(should_fail)
+    assert result.output == output
 
 
-@pytest.mark.parametrize(
-    ["enable", "error"], [(False, False), (True, False), (False, True)], ids=["success", "success (enable)", "fail"]
-)
-def test_cli_start(mocker: pytest_mock.MockerFixture, config_file: pathlib.Path, enable: bool, error: bool):
-    mocker.patch("service.cli.os.getenv", return_value="x")
-    mocker.patch(
-        "service.launchctl.subprocess.run",
-        return_value=subprocess.CompletedProcess([], 0),
-        side_effect=subprocess.CalledProcessError(1, []) if error else None,
-    )
-    mocker.patch("service.service.pathlib.Path.is_file", return_value=True)
+@pytest.mark.usefixtures("config")
+@pytest.mark.parametrize("enable", [True, False])
+@pytest.mark.parametrize("should_fail", [True, False])
+def test_cli_start(mocker: MockerFixture, plist: Path, should_fail: bool, enable: bool):
+    mocker.patch("service.cli.os.getenv", return_value="x")  # use system domain
+    mock_run = mocker.patch("service.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
+    output = f"{plist.stem} {'enabled and ' if enable else ''}started\n"
 
-    subcmd = ["start"]
-    if enable:
-        subcmd.append("--enable")
+    if should_fail:
+        mock_run.side_effect = subprocess.CalledProcessError(1, [])
+        output = f"Error: Failed to {'enable' if enable else 'start'} {plist.stem}\n"
 
     runner = CliRunner()
-    result = runner.invoke(service.cli.cli, ["--config", str(config_file), *subcmd, "srvc"])
+    result = runner.invoke(cli, [*list(filter(None, ["start", "--enable" if enable else ""])), str(plist.absolute())])
 
-    if error:
-        assert result.exit_code == 1
-        assert result.output == "Error: Failed to start com.bar.foo.srvc\n"
-    else:
-        assert result.exit_code == 0
-        assert result.output == f'com.bar.foo.srvc {"enabled and " if enable else ""}started\n'
+    assert result.exit_code == int(should_fail)
+    assert result.output == output
 
 
-@pytest.mark.parametrize(
-    ["disable", "error"], [(False, False), (True, False), (False, True)], ids=["success", "success (disable)", "fail"]
-)
-def test_cli_stop(mocker: pytest_mock.MockerFixture, config_file: pathlib.Path, disable: bool, error: bool):
-    mocker.patch("service.cli.os.getenv", return_value="x")
-    mocker.patch(
-        "service.launchctl.subprocess.run",
-        return_value=subprocess.CompletedProcess([], 0),
-        side_effect=subprocess.CalledProcessError(1, []) if error else None,
-    )
-    mocker.patch("service.service.pathlib.Path.is_file", return_value=True)
+@pytest.mark.usefixtures("config")
+@pytest.mark.parametrize("disable", [True, False])
+@pytest.mark.parametrize("should_fail", [True, False])
+def test_cli_stop(mocker: MockerFixture, plist: Path, should_fail: bool, disable: bool):
+    mocker.patch("service.cli.os.getenv", return_value="x")  # use system domain
+    mock_run = mocker.patch("service.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
+    output = f"{plist.stem} stopped{' and disabled' if disable else ''}\n"
 
-    subcmd = ["stop"]
-    if disable:
-        subcmd.append("--disable")
+    if should_fail:
+        mock_run.side_effect = subprocess.CalledProcessError(1, [])
+        output = f"Error: Failed to stop {plist.stem}\n"
 
     runner = CliRunner()
-    result = runner.invoke(service.cli.cli, ["--config", str(config_file), *subcmd, "srvc"])
+    result = runner.invoke(cli, [*list(filter(None, ["stop", "--disable" if disable else ""])), str(plist.absolute())])
 
-    if error:
-        assert result.exit_code == 1
-        assert result.output == "Error: Failed to stop com.bar.foo.srvc\n"
-    else:
-        assert result.exit_code == 0
-        assert result.output == f'com.bar.foo.srvc stopped{" and disabled" if disable else ""}\n'
+    assert result.exit_code == int(should_fail)
+    assert result.output == output
