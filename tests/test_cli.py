@@ -72,6 +72,19 @@ def plist_fixture(tmp_path: Path) -> Path:
     return file
 
 
+def test_cli_version():
+    runner = CliRunner()
+    result = runner.invoke(cli, "--version")
+    assert result.output.startswith("cli, version")
+
+
+@pytest.mark.parametrize("short_opts", [True, False])
+@pytest.mark.parametrize("verbose", [True, False])
+def test_cli_verbosity(caplog: pytest.LogCaptureFixture, verbose: bool, short_opts: bool):
+    CliRunner().invoke(cli, ["start", "--help", ("-v" if short_opts else "--verbose") if verbose else ""])
+    assert ("DEBUG" in caplog.text) is verbose
+
+
 def test_cli_verifies_platform(mocker: MockerFixture):
     mock_verify_platform = mocker.patch("service.cli.verify_platform")
     CliRunner().invoke(cli, ["start", "--help"])  # arbitrary no-op command
