@@ -133,9 +133,10 @@ def test_cli_restart(mocker: MockerFixture, plist: Path, should_fail: bool):
 
 
 @pytest.mark.usefixtures("config")
+@pytest.mark.parametrize("short_opts", [True, False])
 @pytest.mark.parametrize("enable", [True, False])
 @pytest.mark.parametrize("should_fail", [True, False])
-def test_cli_start(mocker: MockerFixture, plist: Path, should_fail: bool, enable: bool):
+def test_cli_start(mocker: MockerFixture, plist: Path, should_fail: bool, enable: bool, short_opts: bool):
     mocker.patch("service.cli.os.getenv", return_value="x")  # use system domain
     mock_run = mocker.patch("service.cli.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
     output = f"{plist.stem} {'enabled and ' if enable else ''}started\n"
@@ -144,17 +145,25 @@ def test_cli_start(mocker: MockerFixture, plist: Path, should_fail: bool, enable
         mock_run.side_effect = subprocess.CalledProcessError(1, [])
         output = f"Error: Failed to {'enable' if enable else 'start'} {plist.stem}\n"
 
+    args = ["start"]
+
+    if enable:
+        args.append("-e" if short_opts else "--enable")
+
+    args.append(str(plist.absolute()))
+
     runner = CliRunner()
-    result = runner.invoke(cli, [*list(filter(None, ["start", "--enable" if enable else ""])), str(plist.absolute())])
+    result = runner.invoke(cli, args)
 
     assert result.exit_code == int(should_fail)
     assert result.output == output
 
 
 @pytest.mark.usefixtures("config")
+@pytest.mark.parametrize("short_opts", [True, False])
 @pytest.mark.parametrize("disable", [True, False])
 @pytest.mark.parametrize("should_fail", [True, False])
-def test_cli_stop(mocker: MockerFixture, plist: Path, should_fail: bool, disable: bool):
+def test_cli_stop(mocker: MockerFixture, plist: Path, should_fail: bool, disable: bool, short_opts: bool):
     mocker.patch("service.cli.os.getenv", return_value="x")  # use system domain
     mock_run = mocker.patch("service.cli.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
     output = f"{plist.stem} stopped{' and disabled' if disable else ''}\n"
@@ -163,8 +172,15 @@ def test_cli_stop(mocker: MockerFixture, plist: Path, should_fail: bool, disable
         mock_run.side_effect = subprocess.CalledProcessError(1, [])
         output = f"Error: Failed to stop {plist.stem}\n"
 
+    args = ["stop"]
+
+    if disable:
+        args.append("-d" if short_opts else "--disable")
+
+    args.append(str(plist.absolute()))
+
     runner = CliRunner()
-    result = runner.invoke(cli, [*list(filter(None, ["stop", "--disable" if disable else ""])), str(plist.absolute())])
+    result = runner.invoke(cli, args)
 
     assert result.exit_code == int(should_fail)
     assert result.output == output
