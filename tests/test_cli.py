@@ -82,7 +82,7 @@ def test_cli_verifies_platform(mocker: MockerFixture):
 @pytest.mark.parametrize("should_fail", [True, False])
 def test_cli_disable(mocker: MockerFixture, plist: Path, should_fail: bool):
     mocker.patch("service.cli.os.getenv", return_value="x")  # use system domain
-    mock_run = mocker.patch("service.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
+    mock_run = mocker.patch("service.cli.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
     output = f"{plist.stem} disabled\n"
 
     if should_fail:
@@ -100,7 +100,7 @@ def test_cli_disable(mocker: MockerFixture, plist: Path, should_fail: bool):
 @pytest.mark.parametrize("should_fail", [True, False])
 def test_cli_enable(mocker: MockerFixture, plist: Path, should_fail: bool):
     mocker.patch("service.cli.os.getenv", return_value="x")  # use system domain
-    mock_run = mocker.patch("service.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
+    mock_run = mocker.patch("service.cli.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
     output = f"{plist.stem} enabled\n"
 
     if should_fail:
@@ -118,7 +118,7 @@ def test_cli_enable(mocker: MockerFixture, plist: Path, should_fail: bool):
 @pytest.mark.parametrize("should_fail", [True, False])
 def test_cli_restart(mocker: MockerFixture, plist: Path, should_fail: bool):
     mocker.patch("service.cli.os.getenv", return_value="x")  # use system domain
-    mock_run = mocker.patch("service.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
+    mock_run = mocker.patch("service.cli.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
     output = f"{plist.stem} restarted\n"
 
     if should_fail:
@@ -137,7 +137,7 @@ def test_cli_restart(mocker: MockerFixture, plist: Path, should_fail: bool):
 @pytest.mark.parametrize("should_fail", [True, False])
 def test_cli_start(mocker: MockerFixture, plist: Path, should_fail: bool, enable: bool):
     mocker.patch("service.cli.os.getenv", return_value="x")  # use system domain
-    mock_run = mocker.patch("service.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
+    mock_run = mocker.patch("service.cli.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
     output = f"{plist.stem} {'enabled and ' if enable else ''}started\n"
 
     if should_fail:
@@ -156,7 +156,7 @@ def test_cli_start(mocker: MockerFixture, plist: Path, should_fail: bool, enable
 @pytest.mark.parametrize("should_fail", [True, False])
 def test_cli_stop(mocker: MockerFixture, plist: Path, should_fail: bool, disable: bool):
     mocker.patch("service.cli.os.getenv", return_value="x")  # use system domain
-    mock_run = mocker.patch("service.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
+    mock_run = mocker.patch("service.cli.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
     output = f"{plist.stem} stopped{' and disabled' if disable else ''}\n"
 
     if should_fail:
