@@ -66,7 +66,7 @@ def test_service_validate(mocker: MockerFixture, domain: str, base_path: str):
 @pytest.mark.parametrize("exists", [True, False])
 def test_locate(mocker: MockerFixture, exists: bool, reverse_domains: list[str], name: str):
     mocker.patch("service.service.os.getenv", return_value="")
-    mocker.patch("service.service.pathlib.Path.is_file", return_value=exists)
+    mocker.patch("service.service.Path.is_file", return_value=exists)
     name_has_path = len(name.split("/")) > 1
     name_has_reverse_domain = len(name.split(".")) > 2
 
@@ -97,7 +97,7 @@ def test_locate(mocker: MockerFixture, exists: bool, reverse_domains: list[str],
 @pytest.mark.parametrize("domain", [DOMAIN_SYS, DOMAIN_GUI])
 def test_get_paths(mocker: MockerFixture, domain: str, exists: bool):
     mocker.patch("service.service.os.getenv", return_value="x" if domain == DOMAIN_SYS else "")
-    mocker.patch("service.service.pathlib.Path.is_dir", return_value=exists)
+    mocker.patch("service.service.Path.is_dir", return_value=exists)
     paths = [
         Path(base, path)
         for base in (["/", "/System"] if domain == DOMAIN_SYS else [Path.home()])

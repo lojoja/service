@@ -30,7 +30,7 @@ def test_get_reverse_domains(capsys: pytest.CaptureFixture, data: t.Optional[dic
 
 
 def test_get_service(mocker: MockerFixture):
-    mocker.patch("service.cli.pathlib.Path.is_file", return_value=True)
+    mocker.patch("service.cli.Path.is_file", return_value=True)
     ctx = click.Context(click.Command("cmd"))
     ctx.obj = ["com.foo.bar"]
 
