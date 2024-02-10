@@ -7,9 +7,9 @@ An interface for constructing and executing launchctl commands.
 from __future__ import annotations
 import logging
 import subprocess
-from typing import TYPE_CHECKING
+import typing as t
 
-if TYPE_CHECKING:  # pragma: no cover
+if t.TYPE_CHECKING:  # pragma: no cover
     from .service import Service
 
 

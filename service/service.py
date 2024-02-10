@@ -6,7 +6,7 @@ MacOS System and GUI domain services.
 
 import logging
 import os
-import pathlib
+from pathlib import Path
 
 from . import launchctl
 
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class Service:
     """A LaunchAgent or LaunchDaemon service."""
 
-    def __init__(self, path: pathlib.Path):
+    def __init__(self, path: Path):
         self._path = path
 
     @property
@@ -44,7 +44,7 @@ class Service:
         return self._path.stem
 
     @property
-    def path(self) -> pathlib.Path:
+    def path(self) -> Path:
         """The path to the service file."""
         return self._path
 
@@ -89,7 +89,7 @@ def locate(name: str, reverse_domains: list[str]) -> Service:
     if not name.endswith(".plist"):
         name = f"{name}.plist"
 
-    path = pathlib.Path(name)
+    path = Path(name)
 
     logger.debug("Generating potential file paths")
 
@@ -125,7 +125,7 @@ def locate(name: str, reverse_domains: list[str]) -> Service:
     return service
 
 
-def get_paths() -> list[pathlib.Path]:
+def get_paths() -> list[Path]:
     """Get service paths for the active domain.
 
     Raises:
@@ -133,12 +133,12 @@ def get_paths() -> list[pathlib.Path]:
     """
     logger.debug("Identifying service paths")
 
-    base_paths = ["/", "/System"] if os.getenv("SUDO_USER") else [pathlib.Path.home()]
+    base_paths = ["/", "/System"] if os.getenv("SUDO_USER") else [Path.home()]
     service_paths = []
 
     for base in base_paths:
         for path in ["Library/LaunchAgents", "Library/LaunchDaemons"]:
-            service_path = pathlib.Path(base, path)
+            service_path = Path(base, path)
 
             if service_path.is_dir():
                 service_paths.append(service_path)

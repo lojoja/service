@@ -6,7 +6,7 @@ The command-line interface for service
 
 import logging
 import os
-import pathlib
+from pathlib import Path
 import platform
 import typing as t
 
@@ -18,7 +18,7 @@ from .service import locate, Service
 
 
 MACOS_MIN_VERSION = 12.0
-CONFIG_FILE = pathlib.Path(f'~{os.getenv("SUDO_USER", "")}/.config/service.toml').expanduser()
+CONFIG_FILE = Path(f'~{os.getenv("SUDO_USER", "")}/.config/service.toml').expanduser()
 
 
 logger = logging.getLogger(__package__)
