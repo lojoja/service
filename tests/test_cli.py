@@ -1,4 +1,4 @@
-# pylint: disable=missing-module-docstring,missing-function-docstring
+# pylint: disable=missing-module-docstring,missing-function-docstring,too-many-arguments
 
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
@@ -56,44 +56,29 @@ def test_verify_platform(mocker: MockerFixture, name: str, version_offset: int):
         verify_platform()
 
 
-@pytest.fixture(name="config")
-def config_fixture(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
-    """Creates a config file and monkeypatches the CONFIG_FILE variable to read it in tests automatically."""
-    file = tmp_path / "config.toml"
-    file.write_text('reverse-domains = ["com.bar.foo"]\n', encoding="utf8")
-    monkeypatch.setattr("service.cli.CONFIG_FILE", file)
-
-
-@pytest.fixture(name="plist")
-def plist_fixture(tmp_path: Path) -> Path:
-    """Creates a service plist and returns the path to use in tests."""
-    file = tmp_path / "xserv.plist"
-    file.write_text("", encoding="utf8")
-    return file
-
-
-def test_cli_version():
+def test_cli_version(config: Path):
     runner = CliRunner()
-    result = runner.invoke(cli, "--version")
+    result = runner.invoke(cli, ["-c", str(config), "--version"])
     assert result.output.startswith("cli, version")
 
 
 @pytest.mark.parametrize("short_opts", [True, False])
 @pytest.mark.parametrize("verbose", [True, False])
-def test_cli_verbosity(caplog: pytest.LogCaptureFixture, verbose: bool, short_opts: bool):
-    CliRunner().invoke(cli, ["start", "--help", ("-v" if short_opts else "--verbose") if verbose else ""])
+def test_cli_verbosity(caplog: pytest.LogCaptureFixture, config: Path, verbose: bool, short_opts: bool):
+    CliRunner().invoke(
+        cli, ["-c", str(config), "start", "--help", ("-v" if short_opts else "--verbose") if verbose else ""]
+    )
     assert ("DEBUG" in caplog.text) is verbose
 
 
-def test_cli_verifies_platform(mocker: MockerFixture):
+def test_cli_verifies_platform(mocker: MockerFixture, config: Path):
     mock_verify_platform = mocker.patch("service.cli.verify_platform")
-    CliRunner().invoke(cli, ["start", "--help"])  # arbitrary no-op command
+    CliRunner().invoke(cli, ["-c", str(config), "start", "--help"])  # arbitrary no-op command
     mock_verify_platform.assert_called_once()
 
 
-@pytest.mark.usefixtures("config")
 @pytest.mark.parametrize("should_fail", [True, False])
-def test_cli_disable(mocker: MockerFixture, plist: Path, should_fail: bool):
+def test_cli_disable(mocker: MockerFixture, config: Path, plist: Path, should_fail: bool):
     mocker.patch("service.cli.os.getenv", return_value="x")  # use system domain
     mock_run = mocker.patch("service.cli.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
     output = f"{plist.stem} disabled\n"
@@ -103,15 +88,14 @@ def test_cli_disable(mocker: MockerFixture, plist: Path, should_fail: bool):
         output = f"Error: Failed to disable {plist.stem}\n"
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["disable", str(plist.absolute())])
+    result = runner.invoke(cli, ["-c", str(config), "disable", str(plist.absolute())])
 
     assert result.exit_code == int(should_fail)
     assert result.output == output
 
 
-@pytest.mark.usefixtures("config")
 @pytest.mark.parametrize("should_fail", [True, False])
-def test_cli_enable(mocker: MockerFixture, plist: Path, should_fail: bool):
+def test_cli_enable(mocker: MockerFixture, config: Path, plist: Path, should_fail: bool):
     mocker.patch("service.cli.os.getenv", return_value="x")  # use system domain
     mock_run = mocker.patch("service.cli.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
     output = f"{plist.stem} enabled\n"
@@ -121,15 +105,14 @@ def test_cli_enable(mocker: MockerFixture, plist: Path, should_fail: bool):
         output = f"Error: Failed to enable {plist.stem}\n"
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["enable", str(plist.absolute())])
+    result = runner.invoke(cli, ["-c", str(config), "enable", str(plist.absolute())])
 
     assert result.exit_code == int(should_fail)
     assert result.output == output
 
 
-@pytest.mark.usefixtures("config")
 @pytest.mark.parametrize("should_fail", [True, False])
-def test_cli_restart(mocker: MockerFixture, plist: Path, should_fail: bool):
+def test_cli_restart(mocker: MockerFixture, config: Path, plist: Path, should_fail: bool):
     mocker.patch("service.cli.os.getenv", return_value="x")  # use system domain
     mock_run = mocker.patch("service.cli.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
     output = f"{plist.stem} restarted\n"
@@ -139,17 +122,16 @@ def test_cli_restart(mocker: MockerFixture, plist: Path, should_fail: bool):
         output = f"Error: Failed to stop {plist.stem}\n"
 
     runner = CliRunner()
-    result = runner.invoke(cli, ["restart", str(plist.absolute())])
+    result = runner.invoke(cli, ["-c", str(config), "restart", str(plist.absolute())])
 
     assert result.exit_code == int(should_fail)
     assert result.output == output
 
 
-@pytest.mark.usefixtures("config")
 @pytest.mark.parametrize("short_opts", [True, False])
 @pytest.mark.parametrize("enable", [True, False])
 @pytest.mark.parametrize("should_fail", [True, False])
-def test_cli_start(mocker: MockerFixture, plist: Path, should_fail: bool, enable: bool, short_opts: bool):
+def test_cli_start(mocker: MockerFixture, config: Path, plist: Path, should_fail: bool, enable: bool, short_opts: bool):
     mocker.patch("service.cli.os.getenv", return_value="x")  # use system domain
     mock_run = mocker.patch("service.cli.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
     output = f"{plist.stem} {'enabled and ' if enable else ''}started\n"
@@ -158,7 +140,7 @@ def test_cli_start(mocker: MockerFixture, plist: Path, should_fail: bool, enable
         mock_run.side_effect = subprocess.CalledProcessError(1, [])
         output = f"Error: Failed to {'enable' if enable else 'start'} {plist.stem}\n"
 
-    args = ["start"]
+    args = ["-c", str(config), "start"]
 
     if enable:
         args.append("-e" if short_opts else "--enable")
@@ -172,11 +154,10 @@ def test_cli_start(mocker: MockerFixture, plist: Path, should_fail: bool, enable
     assert result.output == output
 
 
-@pytest.mark.usefixtures("config")
 @pytest.mark.parametrize("short_opts", [True, False])
 @pytest.mark.parametrize("disable", [True, False])
 @pytest.mark.parametrize("should_fail", [True, False])
-def test_cli_stop(mocker: MockerFixture, plist: Path, should_fail: bool, disable: bool, short_opts: bool):
+def test_cli_stop(mocker: MockerFixture, config: Path, plist: Path, should_fail: bool, disable: bool, short_opts: bool):
     mocker.patch("service.cli.os.getenv", return_value="x")  # use system domain
     mock_run = mocker.patch("service.cli.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
     output = f"{plist.stem} stopped{' and disabled' if disable else ''}\n"
@@ -185,7 +166,7 @@ def test_cli_stop(mocker: MockerFixture, plist: Path, should_fail: bool, disable
         mock_run.side_effect = subprocess.CalledProcessError(1, [])
         output = f"Error: Failed to stop {plist.stem}\n"
 
-    args = ["stop"]
+    args = ["-c", str(config), "stop"]
 
     if disable:
         args.append("-d" if short_opts else "--disable")
