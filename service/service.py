@@ -18,7 +18,10 @@ logger = logging.getLogger(__name__)
 
 
 class Service:
-    """A LaunchAgent or LaunchDaemon service."""
+    """A LaunchAgent or LaunchDaemon service.
+
+    :param path: The path to the service file.
+    """
 
     def __init__(self, path: Path):
         self._path = path
@@ -34,7 +37,7 @@ class Service:
         return str(self._path.absolute())
 
     @property
-    def id(self) -> str:  # pylint: disable=c0103
+    def id(self) -> str:
         """The service ID in the system domain."""
         return "/".join([self.domain, self.name]) if os.getenv("SUDO_USER") else ""
 
@@ -53,8 +56,7 @@ class Service:
 
         A service is considered valid if it is part of the active domain and is not a macOS system service.
 
-        Raises:
-            RuntimeError: When the service is not valid.
+        :raises RuntimeError: When the service is not valid.
         """
         if self.domain == launchctl.DOMAIN_SYS:
             if self.file.startswith("/System"):
@@ -68,19 +70,16 @@ class Service:
 
 
 def locate(name: str, reverse_domains: list[str]) -> Service:
-    """
-    Locate a service.
+    """Locate a service.
 
     If an absolute or relative path is part of `name` that path is used to find the service. If a path is not present
     all directories containing services for the current domain will be searched.
 
-    Args:
-        name: The service name, with optional absolute/relative path and file extension.
-        reverse_domains: A list of reverse domains to prepend to the service name.
+    :param name: The service name, with optional absolute/relative path and file extension.
+    :param reverse_domains: A list of reverse domains to prepend to the service name.
 
-    Raises:
-        ValueError: When a service is not found or a service name without path and/or domain is provided and there no
-                    reverse domains are configured.
+    :raises ValueError: When a service is not found or a service name without path and/or domain is provided and there
+    no reverse domains are configured.
     """
     logger.debug('Locating service "%s"', name)
     original_name = name
@@ -128,8 +127,7 @@ def locate(name: str, reverse_domains: list[str]) -> Service:
 def get_paths() -> list[Path]:
     """Get service paths for the active domain.
 
-    Raises:
-        ValueError: When no service paths are found.
+    :raises ValueError: When no service paths are found.
     """
     logger.debug("Identifying service paths")
 

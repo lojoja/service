@@ -30,12 +30,10 @@ logger = logging.getLogger(__name__)
 
 
 def _execute(subcommand: str, *args: str) -> None:
-    """
-    Construct and execute a launchctl command.
+    """Construct and execute a launchctl command.
 
-    Args:
-        subcommand: The launchctl subcommand to run
-        args: The arguments for the subcommand
+    :param subcommand: The launchctl subcommand to run
+    :param args: The arguments for the subcommand
     """
     cmd = ["launchctl", subcommand, *args]
 
@@ -46,13 +44,11 @@ def _execute(subcommand: str, *args: str) -> None:
 def boot(service: Service, run: bool = False) -> None:
     """Start or stop a service.
 
-    Args:
-        service: The service to modify.
-        run: Whether to run (start) the service.
+    :param service: The service to modify.
+    :param run: Whether to run (start) the service.
 
-    Raises:
-        RuntimeError: When the service is already in the target state, runtime state change is prevented by SIP, or
-                      changing the runtime state fails.
+    :raises RuntimeError: When the service is already in the target state, runtime state change is prevented by SIP, or
+    changing the runtime state fails.
     """
     subcmd, action, current_state = ("bootstrap", "start", "started") if run else ("bootout", "stop", "stopped")
 
@@ -78,13 +74,11 @@ def boot(service: Service, run: bool = False) -> None:
 def change_state(service: Service, enable: bool = False) -> None:
     """Change service state (enable/disble).
 
-    Args:
-        service: The service to modify.
-        enable: Whether the service should be enabled.
+    :param service: The service to target.
+    :param enable: Whether the service should be enabled.
 
-    Raises:
-        ValueError: When an unknown service state is specified.
-        RuntimeError: When the service state cannot be changed or failed to change.
+    :raises ValueError: When an unknown service state is specified.
+    :raises RuntimeError: When the service state cannot be changed or changing the service state fails.
     """
     subcmd = "enable" if enable else "disable"
 

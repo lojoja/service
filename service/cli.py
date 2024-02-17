@@ -27,8 +27,7 @@ logger = logging.getLogger(__package__)
 def get_reverse_domains(data: t.Optional[dict[str, list[str]]]) -> list[str]:
     """Build reverse domains from configuration file data.
 
-    Arguments:
-        data: The parsed configuration file data.
+    :param data: The parsed configuration file data.
     """
     if data is None or "reverse-domains" not in data:
         reverse_domains = []
@@ -45,7 +44,12 @@ def get_reverse_domains(data: t.Optional[dict[str, list[str]]]) -> list[str]:
 
 
 def get_service(ctx: click.Context, param: click.Parameter, value: str) -> None:  # pylint: disable=unused-argument
-    """Get the target service and store it on `ctx.obj`."""
+    """Get the target service and store it on `ctx.obj`.
+
+    :param ctx: The current click execution context.
+    :param param: The parameter that triggered the callback.
+    :param value: The parameter value.
+    """
     reverse_domains: list[str] = ctx.obj.copy()
     ctx.obj = locate(value, reverse_domains)
 
@@ -128,8 +132,7 @@ def stop(service: Service, disable_service: bool) -> None:
 def verify_platform() -> None:
     """Verify the platform is supported.
 
-    Raises:
-        RuntimeError: When the platform or platform version is not supported.
+    :raises RuntimeError: When the platform or platform version is not supported.
     """
     logger.debug("Checking platform")
 
