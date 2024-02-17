@@ -34,9 +34,9 @@ Commands:
   stop     Stop a service.
 ```
 
-Services can be referenced by name, file name (with or without extension), or the full path to the file. When referenced by name, the service will be resolved using the defined reverse domains (see [Configuration](#Configuration)). All the following are valid references:
+Services can be referenced by name, file name (with or without ".plist" extension), or the full path to the file. When referenced by name the service will be resolved using the defined reverse domains (see [Configuration](#Configuration)). Examples of valid service references are:
 
-- baz
+- baz _(when reverse domains are defined)_
 - com.foobar.baz
 - com.foobar.baz.plist
 - /Library/LaunchDaemons/com.foobar.baz
@@ -49,48 +49,55 @@ Services can be referenced by name, file name (with or without extension), or th
 Start a service:
 
 ```
-> service start com.bar.foo
+$ service start com.gui.xserv
+xserv started
 ```
 
-Enable and start a service:
+Enable and start a service (system domain):
 
 ```
-> sudo service start --enable com.bar.foo
+$ sudo service start --enable com.sys.xserv
+xserv enabled and started
 ```
 
 Stop a service:
 
 ```
-> service stop com.bar.foo
+$ service stop com.gui.xserv
+xserv stopped
 ```
 
-Stop and disable a service:
+Stop and disable a service (system domain):
 
 ```
-> sudo service stop --disable com.bar.foo
+$ sudo service stop --disable com.sys.xserv
+xserv stopped and disabled
 ```
 
 Restart a service:
 
 ```
-> service restart com.bar.foo
+$ service restart com.gui.xserv
+xserv restarted
 ```
 
-Enable a service:
+Enable a service (system domain):
 
 ```
-> sudo service enable com.bar.foo
+$ sudo service enable com.sys.xserv
+xserv enabled
 ```
 
-Disable a service:
+Disable a service (system domain):
 
 ```
-> sudo service disable com.bar.foo
+$ sudo service disable com.sys.xserv
+xserv disabled
 ```
 
 ## Configuration
 
-Reverse domains can be defined in the file `~/.config/service.toml`. When a service is referenced by name it will be resolved to a file in the current domain using the defined reverse domains. Services cannot be referenced by name only if no reverse domains are defined.
+Reverse domains can be defined in the file `~/.config/service.toml`. When a service is referenced by name it will be resolved to a file in the current domain (system/gui) using the defined reverse domains. Services cannot be referenced by their name alone if no reverse domains are defined.
 
 Example configuration:
 
@@ -99,6 +106,13 @@ reverse-domains = [
   "com.bar.foo",
   "org.bat.baz"
 ]
+```
+
+With this configuration, a service in the gui domain at `~/Library/LaunchAgents/com.bar.foo.xserv.plist` can be targeted using only its name (`xserv`):
+
+```
+$ service start xserv
+xserv started
 ```
 
 ## License

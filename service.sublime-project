@@ -18,7 +18,7 @@
       "ltex-ls": {
         "settings": {
           "ltex.dictionary": {
-            "en-US": ["launchctl", "LaunchAgents", "LaunchDaemons", "baz", "plist"]
+            "en-US": ["baz", "gui", "launchctl", "LaunchAgents", "LaunchDaemons", "plist"]
           }
         }
       }
