@@ -9,7 +9,7 @@ import logging
 import subprocess
 import typing as t
 
-if t.TYPE_CHECKING:  # pragma: no cover
+if t.TYPE_CHECKING:
     from .service import Service
 
 
