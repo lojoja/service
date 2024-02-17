@@ -11,7 +11,7 @@ import platform
 import typing as t
 
 import click
-from clickext import ClickextCommand, ClickextGroup, config_option, init_logging, verbose_option
+from clickext import ClickextCommand, ClickextGroup, config_option, verbose_option
 
 from . import launchctl
 from .service import locate, Service
@@ -22,7 +22,6 @@ CONFIG_FILE = Path(f'~{os.getenv("SUDO_USER", "")}/.config/service.toml').expand
 
 
 logger = logging.getLogger(__package__)
-init_logging(logger)
 
 
 def get_reverse_domains(data: t.Optional[dict[str, list[str]]]) -> list[str]:
