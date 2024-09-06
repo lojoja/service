@@ -2,14 +2,15 @@ name: Tests
 
 on:
   push:
-    branches: [main, dev]
+    branches: [dev]
   pull_request:
-    branches: [main, dev]
+    branches: [dev]
+  workflow_call:
   workflow_dispatch:
 
 jobs:
   tests:
-    name: macos-latest-${{ matrix.python-version }}
+    name: Tests python ${{ matrix.python-version }}
     runs-on: macos-latest
     strategy:
       fail-fast: false
