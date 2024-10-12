@@ -1,4 +1,4 @@
-# pylint: disable=missing-module-docstring,missing-function-docstring,too-many-arguments
+# pylint: disable=missing-module-docstring,missing-function-docstring,too-many-arguments,too-many-positional-arguments
 
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
