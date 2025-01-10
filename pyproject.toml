@@ -1,16 +1,32 @@
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=2.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry]
+[project]
 name = "py-service"
 version = "2.0.4a0"
 description = "Extremely basic launchctl wrapper for macOS."
+license = {text = "MIT"}
 readme = "README.md"
-license = "MIT"
-authors = ["lojoja <dev@lojoja.com>"]
+authors = [
+  { name = "lojoja", email = "<dev@lojoja.com>" }
+]
+requires-python = ">=3.10,<4"
+dependencies = [
+  "click==8.*",
+  "clickext>=1.0.1,<2"
+]
+dynamic = ["classifiers"]
+
+[project.urls]
 homepage = "https://github.com/lojoja/service"
 repository = "https://github.com/lojoja/service"
+"Bug Tracker" = "https://github.com/lojoja/service/issues"
+
+[project.scripts]
+service = "service.cli:cli"
+
+[tool.poetry]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Operating System :: MacOS :: MacOS X",
@@ -22,14 +38,6 @@ packages = [
     {include = "service"}
 ]
 
-[tool.poetry.urls]
-"Bug Tracker" = "https://github.com/lojoja/service/issues"
-
-[tool.poetry.dependencies]
-python = "^3.10.0"
-click = "^8.0.0"
-clickext = "^1.0.1"
-
 [tool.poetry.group.dev.dependencies]
 black = "^24.0.0"
 pylint = "^3.0.0"
@@ -37,9 +45,6 @@ pyright = "^1.1.349"
 pytest = "^8.0.0"
 pytest-cov = ">=4.1,<7.0"
 pytest-mock = "^3.12.0"
-
-[tool.poetry.scripts]
-service = "service.cli:cli"
 
 [tool.black]
 include = '\.pyi?$'
