@@ -26,7 +26,7 @@ env:
 jobs:
   ci:
     name: CI
-    uses: ./github/workflows/CI.yml
+    uses: ./.github/workflows/CI.yml
     if: inputs.publish == false && github.event_name != 'release'
     with:
       cd: true
