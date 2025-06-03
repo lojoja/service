@@ -5,7 +5,7 @@ Extremely basic launchctl wrapper for macOS.
 ## Requirements
 
 - macOS 12.x+
-- Python 3.10.x, 3.11.x
+- Python 3.10.x - 3.13.x
 
 ## Installation
 
