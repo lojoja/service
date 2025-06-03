@@ -104,7 +104,7 @@ jobs:
 
   pytest:
     name: Pytest (py${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     needs: changes
     if: needs.changes.outputs.should_skip == 'false' || ! fromJSON(needs.changes.outputs.named).python.should_skip
     strategy:
