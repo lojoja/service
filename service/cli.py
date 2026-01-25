@@ -16,7 +16,6 @@ from clickext import ClickextCommand, ClickextGroup, config_option, verbose_opti
 from . import launchctl
 from .service import locate, Service
 
-
 MACOS_MIN_VERSION = 12.0
 CONFIG_FILE = Path(f'~{os.getenv("SUDO_USER", "")}/.config/service.toml').expanduser()
 

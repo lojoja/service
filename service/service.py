@@ -10,7 +10,6 @@ from pathlib import Path
 
 from . import launchctl
 
-
 __all__ = ["locate", "Service"]
 
 
