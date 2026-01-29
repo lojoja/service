@@ -23,12 +23,11 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-  "black>=26.1.0,<27",
-  "pylint>=4.0.4,<5",
   "pyright>=1.1.408,<2",
   "pytest>=9.0.2,<10",
   "pytest-cov>=4.1,<8.0",
   "pytest-mock>=3.15.1,<4",
+  "ruff>=0.14.14",
 ]
 
 [project.urls]
@@ -42,12 +41,6 @@ service = "service.cli:cli"
 [build-system]
 requires = ["uv_build>=0.9.26,<0.10.0"]
 build-backend = "uv_build"
-
-[tool.black]
-include = '\.pyi?$'
-line-length = 120
-skip-magic-trailing-comma = true
-target_version = ["py310", "py311"]
 
 [tool.coverage.run]
 source = ["src"]
@@ -64,19 +57,6 @@ exclude_lines = [
 fail_under = 100
 show_missing = true
 
-[tool.pylint.main]
-ignore-paths = ["^(.*/)?.venv/.*$", "^(.*/)?dist/.*$"]
-load-plugins = ["pylint.extensions.mccabe"]
-
-[tool.pylint.design]
-max-complexity = 15
-
-[tool.pylint.format]
-max-line-length = 120
-
-[tool.pylint.imports]
-allow-reexport-from-package = true
-
 [tool.pyright]
 ignore = [".venv/*", "dist/*"]
 pythonVersion = "3.10"
@@ -89,6 +69,43 @@ pythonpath = ["src"]
 testpaths = ["tests"]
 markers = []
 filterwarnings = ["ignore:::.*pytest_cov*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+src = ["src", "tests"]
+extend-exclude = ["build"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["COM812", "D203", "D213", "E111", "E114", "E117"]
+fixable = ["ALL"]
+unfixable = []
+mccabe.max-complexity = 10
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+  "D100",
+  "D101",
+  "D102",
+  "D103",
+  "D104",
+  "D105",
+  "D106",
+  "D107",
+  "FBT001",
+  "INP001",
+  "PLR0913",
+  "S101"
+]
 
 [tool.uv.build-backend]
 module-name = "service"

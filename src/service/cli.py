@@ -1,29 +1,24 @@
-"""
-service.cli
-
-The command-line interface for service
-"""
+"""The command-line interface for service."""
 
 import logging
 import os
-from pathlib import Path
 import platform
-import typing as t
+from pathlib import Path
 
 import click
 from clickext import ClickextCommand, ClickextGroup, config_option, verbose_option
 
 from . import launchctl
-from .service import locate, Service
+from .service import Service, locate
 
 MACOS_MIN_VERSION = 12.0
-CONFIG_FILE = Path(f'~{os.getenv("SUDO_USER", "")}/.config/service.toml').expanduser()
+CONFIG_FILE = Path(f"~{os.getenv('SUDO_USER', '')}/.config/service.toml").expanduser()
 
 
 logger = logging.getLogger(__package__)
 
 
-def get_reverse_domains(data: t.Optional[dict[str, list[str]]]) -> list[str]:
+def get_reverse_domains(data: dict[str, list[str]] | None) -> list[str]:
     """Build reverse domains from configuration file data.
 
     :param data: The parsed configuration file data.
@@ -42,7 +37,7 @@ def get_reverse_domains(data: t.Optional[dict[str, list[str]]]) -> list[str]:
     return reverse_domains
 
 
-def get_service(ctx: click.Context, param: click.Parameter, value: str) -> None:  # pylint: disable=unused-argument
+def get_service(ctx: click.Context, param: click.Parameter, value: str) -> None:  # noqa: ARG001
     """Get the target service and store it on `ctx.obj`.
 
     :param ctx: The current click execution context.
@@ -99,7 +94,7 @@ def restart(service: Service) -> None:
     help="Enable sevice before starting (system domain only).",
 )
 @click.pass_obj
-def start(service: Service, enable_service: bool) -> None:
+def start(service: Service, *, enable_service: bool) -> None:
     """Start a service."""
     if enable_service:
         launchctl.change_state(service, enable=True)
@@ -118,7 +113,7 @@ def start(service: Service, enable_service: bool) -> None:
     help="Disable service after stopping (system domain only).",
 )
 @click.pass_obj
-def stop(service: Service, disable_service: bool) -> None:
+def stop(service: Service, disable_service: bool) -> None:  # noqa: FBT001
     """Stop a service."""
     launchctl.boot(service, run=False)
 
@@ -136,10 +131,12 @@ def verify_platform() -> None:
     logger.debug("Checking platform")
 
     if platform.system() != "Darwin":
-        raise click.ClickException(f"{__package__} requires macOS")
+        msg = f"{__package__} requires macOS"
+        raise click.ClickException(msg)
 
     macos_version = platform.mac_ver()[0]
     macos_version = float(".".join(macos_version.split(".")[:2]))
 
     if macos_version < MACOS_MIN_VERSION:
-        raise click.ClickException(f"{__package__} requires macOS {MACOS_MIN_VERSION} or higher")
+        msg = f"{__package__} requires macOS {MACOS_MIN_VERSION} or higher"
+        raise click.ClickException(msg)

@@ -1,5 +1,3 @@
-# pylint: disable=missing-module-docstring,missing-function-docstring
-
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 
@@ -11,7 +9,7 @@ from service.service import Service, get_paths, locate
 
 
 @pytest.mark.parametrize("domain", [DOMAIN_SYS, DOMAIN_GUI])
-def test_service(mocker: MockerFixture, domain: str):
+def test_service(mocker: MockerFixture, domain: str) -> None:
     mocker.patch("service.service.os.getenv", return_value="x" if domain == DOMAIN_SYS else "")
     mocker.patch("service.service.os.geteuid", return_value=0 if domain == DOMAIN_SYS else 500)
     path = Path("xserv.plist")
@@ -25,10 +23,15 @@ def test_service(mocker: MockerFixture, domain: str):
 
 
 @pytest.mark.parametrize(
-    "base_path", ["/Library/LaunchAgents", "/System/Library/LaunchAgents", "/Users/foo/Library/LaunchAgents"]
+    "base_path",
+    [
+        "/Library/LaunchAgents",
+        "/System/Library/LaunchAgents",
+        "/Users/foo/Library/LaunchAgents",
+    ],
 )
 @pytest.mark.parametrize("domain", [DOMAIN_SYS, DOMAIN_GUI])
-def test_service_validate(mocker: MockerFixture, domain: str, base_path: str):
+def test_service_validate(mocker: MockerFixture, domain: str, base_path: str) -> None:
     mocker.patch("service.service.os.getenv", return_value="x" if domain == DOMAIN_SYS else "")
     mocker.patch("service.service.os.geteuid", return_value=0 if domain == DOMAIN_SYS else 500)
     service = Service(Path(base_path, "xserv.plist"))
@@ -64,11 +67,11 @@ def test_service_validate(mocker: MockerFixture, domain: str, base_path: str):
 )
 @pytest.mark.parametrize("reverse_domains", [[], ["com.foo.bar"]])
 @pytest.mark.parametrize("exists", [True, False])
-def test_locate(mocker: MockerFixture, exists: bool, reverse_domains: list[str], name: str):
+def test_locate(mocker: MockerFixture, exists: bool, reverse_domains: list[str], name: str) -> None:
     mocker.patch("service.service.os.getenv", return_value="")
     mocker.patch("service.service.Path.is_file", return_value=exists)
     name_has_path = len(name.split("/")) > 1
-    name_has_reverse_domain = len(name.split(".")) > 2
+    name_has_reverse_domain = len(name.split(".")) > 2  # noqa: PLR2004
 
     context = does_not_raise()
 
@@ -95,7 +98,7 @@ def test_locate(mocker: MockerFixture, exists: bool, reverse_domains: list[str],
 
 @pytest.mark.parametrize("exists", [True, False])
 @pytest.mark.parametrize("domain", [DOMAIN_SYS, DOMAIN_GUI])
-def test_get_paths(mocker: MockerFixture, domain: str, exists: bool):
+def test_get_paths(mocker: MockerFixture, domain: str, exists: bool) -> None:
     mocker.patch("service.service.os.getenv", return_value="x" if domain == DOMAIN_SYS else "")
     mocker.patch("service.service.Path.is_dir", return_value=exists)
     paths = [

@@ -1,10 +1,7 @@
-"""
-service.launchctl
-
-An interface for constructing and executing launchctl commands.
-"""
+"""An interface for constructing and executing launchctl commands."""
 
 from __future__ import annotations
+
 import logging
 import subprocess
 import typing as t
@@ -38,10 +35,10 @@ def _execute(subcommand: str, *args: str) -> None:
     cmd = ["launchctl", subcommand, *args]
 
     logger.debug('Calling launchctl with command "%s"', " ".join(cmd))
-    subprocess.run(cmd, check=True, capture_output=True)
+    subprocess.run(cmd, check=True, capture_output=True)  # noqa: S603
 
 
-def boot(service: Service, run: bool = False) -> None:
+def boot(service: Service, *, run: bool = False) -> None:
     """Start or stop a service.
 
     :param service: The service to modify.
@@ -71,7 +68,7 @@ def boot(service: Service, run: bool = False) -> None:
         raise RuntimeError(msg) from exc
 
 
-def change_state(service: Service, enable: bool = False) -> None:
+def change_state(service: Service, *, enable: bool = False) -> None:
     """Change service state (enable/disble).
 
     :param service: The service to target.
@@ -85,9 +82,11 @@ def change_state(service: Service, enable: bool = False) -> None:
     logger.debug("Changing service state: %s (%s)", service.name, subcmd)
 
     if service.domain != DOMAIN_SYS:
-        raise RuntimeError(f'Cannot change service state in the "{service.domain}" domain')
+        msg = f'Cannot change service state in the "{service.domain}" domain'
+        raise RuntimeError(msg)
 
     try:
         _execute(subcmd, service.id)
     except subprocess.CalledProcessError as exc:
-        raise RuntimeError(f"Failed to {subcmd} {service.name}") from exc
+        msg = f"Failed to {subcmd} {service.name}"
+        raise RuntimeError(msg) from exc

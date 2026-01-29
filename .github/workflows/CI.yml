@@ -57,21 +57,6 @@ jobs:
                 - ${{ env.PYTHON_PACKAGE_MANAGER }}.lock
                 - pyproject.toml
 
-  black:
-    name: Black
-    runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.should_skip == 'false' || ! fromJSON(needs.changes.outputs.named).python.should_skip
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-
-      - name: Run black
-        uses: lojoja/action-black@main
-        with:
-          package_manager: ${{ env.PYTHON_PACKAGE_MANAGER }}
-          python_version: ${{ env.PYTHON_VERSION }}
-
   prettier:
     name: Prettier
     runs-on: ubuntu-latest
@@ -101,6 +86,38 @@ jobs:
         with:
           package_manager: ${{ env.PYTHON_PACKAGE_MANAGER }}
           python_version: ${{ env.PYTHON_VERSION }}
+
+  ruff-format:
+    name: Ruff (Format)
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.should_skip == 'false' || ! fromJSON(needs.changes.outputs.named).python.should_skip
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Run ruff
+        uses: lojoja/action-ruff@main
+        with:
+          package_manager: ${{ env.PYTHON_PACKAGE_MANAGER }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          command: format
+
+  ruff-lint:
+    name: Ruff (Lint)
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.should_skip == 'false' || ! fromJSON(needs.changes.outputs.named).python.should_skip
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Run ruff
+        uses: lojoja/action-ruff@main
+        with:
+          package_manager: ${{ env.PYTHON_PACKAGE_MANAGER }}
+          python_version: ${{ env.PYTHON_VERSION }}
+          command: check
 
   pytest:
     name: Pytest (py${{ matrix.python-version }})
@@ -171,10 +188,10 @@ jobs:
     if: always()
     needs:
       - build
-      - black
       - prettier
-      - pylint
       - pytest
+      - ruff-format
+      - ruff-lint
     steps:
       - name: CI failed
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')

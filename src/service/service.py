@@ -1,8 +1,4 @@
-"""
-service.service
-
-MacOS System and GUI domain services.
-"""
+"""MacOS System and GUI domain services."""
 
 import logging
 import os
@@ -10,19 +6,20 @@ from pathlib import Path
 
 from . import launchctl
 
-__all__ = ["locate", "Service"]
+__all__ = ["Service", "locate"]
 
 
 logger = logging.getLogger(__name__)
 
 
 class Service:
-    """A LaunchAgent or LaunchDaemon service.
+    """A LaunchAgent or LaunchDaemon service."""
 
-    :param path: The path to the service file.
-    """
+    def __init__(self, path: Path) -> None:
+        """Initialize a service.
 
-    def __init__(self, path: Path):
+        :param path: The path to the service file.
+        """
         self._path = path
 
     @property
@@ -38,7 +35,7 @@ class Service:
     @property
     def id(self) -> str:
         """The service ID in the system domain."""
-        return "/".join([self.domain, self.name]) if os.getenv("SUDO_USER") else ""
+        return f"{self.domain}/{self.name}" if os.getenv("SUDO_USER") else ""
 
     @property
     def name(self) -> str:
@@ -59,13 +56,15 @@ class Service:
         """
         if self.domain == launchctl.DOMAIN_SYS:
             if self.file.startswith("/System"):
-                raise RuntimeError(f"{self.name} is a macOS system service")
+                msg = f"{self.name} is a macOS system service"
+                raise RuntimeError(msg)
 
             if self.file.startswith("/Users"):
-                raise RuntimeError(f"{self.name} is not in the {self.domain} domain")
-        else:
-            if not self.file.startswith("/Users"):
-                raise RuntimeError(f"{self.name} is not in the {self.domain} domain")
+                msg = f"{self.name} is not in the {self.domain} domain"
+                raise RuntimeError(msg)
+        elif not self.file.startswith("/Users"):
+            msg = f"{self.name} is not in the {self.domain} domain"
+            raise RuntimeError(msg)
 
 
 def locate(name: str, reverse_domains: list[str]) -> Service:
@@ -96,11 +95,11 @@ def locate(name: str, reverse_domains: list[str]) -> Service:
     else:
         if len(path.suffixes) > 1:
             file_names = [path.name]
+        elif reverse_domains:
+            file_names = [f"{rd}.{path.name}" for rd in reverse_domains]
         else:
-            if reverse_domains:
-                file_names = [f"{rd}.{path.name}" for rd in reverse_domains]
-            else:
-                raise ValueError("No reverse domains configured")
+            msg = "No reverse domains configured"
+            raise ValueError(msg)
 
         file_paths = [p.joinpath(n) for p in get_paths() for n in file_names]
 
@@ -112,7 +111,8 @@ def locate(name: str, reverse_domains: list[str]) -> Service:
             break
 
     if not service_path:
-        raise ValueError(f'Service "{original_name}" not found')
+        msg = f'Service "{original_name}" not found'
+        raise ValueError(msg)
 
     logger.debug('Service found, using "%s"', service_path)
     service = Service(service_path)
@@ -141,6 +141,7 @@ def get_paths() -> list[Path]:
                 service_paths.append(service_path)
 
     if not service_paths:
-        raise ValueError("No service paths found")
+        msg = "No service paths found"
+        raise ValueError(msg)
 
     return service_paths

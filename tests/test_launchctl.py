@@ -1,16 +1,11 @@
-# pylint: disable=missing-module-docstring,missing-function-docstring,protected-access
-
+import subprocess
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
-import subprocess
 
 import pytest
 from pytest_mock import MockerFixture
 
 from service.launchctl import (
-    _execute,
-    boot,
-    change_state,
     DOMAIN_GUI,
     DOMAIN_SYS,
     ERROR_GUI_ALREADY_STARTED,
@@ -18,11 +13,14 @@ from service.launchctl import (
     ERROR_SIP,
     ERROR_SYS_ALREADY_STARTED,
     ERROR_SYS_ALREADY_STOPPED,
+    _execute,
+    boot,
+    change_state,
 )
 from service.service import Service
 
 
-def test__execute(mocker: MockerFixture):
+def test__execute(mocker: MockerFixture) -> None:
     subcommand = "bootstrap"
     subcommand_args = [DOMAIN_GUI, "/foo"]
     subprocess_mock = mocker.patch("service.launchctl.subprocess.run")
@@ -46,8 +44,11 @@ def test__execute(mocker: MockerFixture):
     ],
 )
 @pytest.mark.parametrize("run", [True, False])
-def test_boot(mocker: MockerFixture, run: bool, return_code: int):
-    mock_run = mocker.patch("service.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
+def test_boot(mocker: MockerFixture, run: bool, return_code: int) -> None:
+    mock_run = mocker.patch(
+        "service.launchctl.subprocess.run",
+        return_value=subprocess.CompletedProcess([], 0),
+    )
     context = does_not_raise()
     service = Service(Path("xserv.plist"))
 
@@ -65,16 +66,21 @@ def test_boot(mocker: MockerFixture, run: bool, return_code: int):
         boot(service, run=run)
 
     mock_run.assert_called_once_with(
-        ["launchctl", "bootstrap" if run else "bootout", service.domain, service.file], check=True, capture_output=True
+        ["launchctl", "bootstrap" if run else "bootout", service.domain, service.file],
+        check=True,
+        capture_output=True,
     )
 
 
 @pytest.mark.parametrize("should_fail", [True, False])
 @pytest.mark.parametrize("subcmd", ["enable", "disable"])
 @pytest.mark.parametrize("domain", [DOMAIN_SYS, DOMAIN_GUI])
-def test_change_state(mocker: MockerFixture, domain: str, subcmd: str, should_fail: bool):
+def test_change_state(mocker: MockerFixture, domain: str, subcmd: str, should_fail: bool) -> None:
     mocker.patch("service.service.os.getenv", return_value="x" if domain == DOMAIN_SYS else "")
-    mock_run = mocker.patch("service.launchctl.subprocess.run", return_value=subprocess.CompletedProcess([], 0))
+    mock_run = mocker.patch(
+        "service.launchctl.subprocess.run",
+        return_value=subprocess.CompletedProcess([], 0),
+    )
     context = does_not_raise()
     service = Service(Path("xserv.plist"))
 
