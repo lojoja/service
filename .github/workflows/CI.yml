@@ -72,21 +72,6 @@ jobs:
           install: "true"
           node_version: ${{ env.NODE_VERSION }}
 
-  pylint:
-    name: Pylint
-    runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.should_skip == 'false' || ! fromJSON(needs.changes.outputs.named).python.should_skip
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-
-      - name: Run pylint
-        uses: lojoja/action-pylint@main
-        with:
-          package_manager: ${{ env.PYTHON_PACKAGE_MANAGER }}
-          python_version: ${{ env.PYTHON_VERSION }}
-
   ruff-format:
     name: Ruff (Format)
     runs-on: ubuntu-latest
