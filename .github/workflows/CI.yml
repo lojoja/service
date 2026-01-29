@@ -72,6 +72,26 @@ jobs:
           install: "true"
           node_version: ${{ env.NODE_VERSION }}
 
+  pytest:
+    name: Pytest (py${{ matrix.python-version }})
+    runs-on: macos-latest
+    needs: changes
+    if: needs.changes.outputs.should_skip == 'false' || ! fromJSON(needs.changes.outputs.named).python.should_skip
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Run pytest
+        uses: lojoja/action-pytest@main
+        with:
+          coverage: "true"
+          package_manager: ${{ env.PYTHON_PACKAGE_MANAGER }}
+          python_version: ${{ matrix.python-version }}
+
   ruff-format:
     name: Ruff (Format)
     runs-on: ubuntu-latest
@@ -103,26 +123,6 @@ jobs:
           package_manager: ${{ env.PYTHON_PACKAGE_MANAGER }}
           python_version: ${{ env.PYTHON_VERSION }}
           command: check
-
-  pytest:
-    name: Pytest (py${{ matrix.python-version }})
-    runs-on: macos-latest
-    needs: changes
-    if: needs.changes.outputs.should_skip == 'false' || ! fromJSON(needs.changes.outputs.named).python.should_skip
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-
-      - name: Run pytest
-        uses: lojoja/action-pytest@main
-        with:
-          coverage: "true"
-          package_manager: ${{ env.PYTHON_PACKAGE_MANAGER }}
-          python_version: ${{ matrix.python-version }}
 
   ty:
     name: ty
