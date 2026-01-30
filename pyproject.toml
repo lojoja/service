@@ -42,11 +42,6 @@ service = "service.cli:cli"
 requires = ["uv_build>=0.9.26,<0.10.0"]
 build-backend = "uv_build"
 
-[tool.coverage.run]
-source = ["src"]
-omit = ["tests/"]
-branch = true
-
 [tool.coverage.report]
 exclude_lines = [
   "pragma: no cover",
@@ -57,11 +52,10 @@ exclude_lines = [
 fail_under = 100
 show_missing = true
 
-[tool.pyright]
-ignore = [".venv/*", "dist/*"]
-pythonVersion = "3.10"
-venv = ".venv"
-venvPath = "."
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests"]
+branch = true
 
 [tool.pytest.ini_options]
 addopts = "--strict-markers"
