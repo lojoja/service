@@ -21,32 +21,29 @@ dependencies = [
   "clickext>=1.0.1,<2",
 ]
 
-[dependency-groups]
-dev = [
-  "pytest>=9.0.2,<10",
-  "pytest-cov>=4.1,<8.0",
-  "pytest-mock>=3.15.1,<4",
-  "ruff>=0.14.14",
-  "ty>=0.0.14",
-]
+[project.scripts]
+service = "service.cli:cli"
 
 [project.urls]
 homepage = "https://github.com/lojoja/service"
 repository = "https://github.com/lojoja/service"
 "Bug Tracker" = "https://github.com/lojoja/service/issues"
 
-[project.scripts]
-service = "service.cli:cli"
-
 [build-system]
 requires = ["uv_build>=0.9.26,<0.10.0"]
 build-backend = "uv_build"
 
+[dependency-groups]
+dev = [
+  "pytest>=9.0.2,<10",
+  "pytest-cov>=7.0.0,<8.0",
+  "pytest-mock>=3.15.1,<4",
+  "ruff>=0.14.14",
+  "ty>=0.0.14",
+]
+
 [tool.coverage.report]
-exclude_lines = [
-  "pragma: no cover",
-  "def __repr__",
-  "if log:",
+exclude_also = [
   "if t.TYPE_CHECKING:"
 ]
 fail_under = 100
@@ -57,12 +54,11 @@ source = ["src"]
 omit = ["tests"]
 branch = true
 
-[tool.pytest.ini_options]
-addopts = "--strict-markers"
-pythonpath = ["src"]
+[tool.pytest]
 testpaths = ["tests"]
+strict_markers = true
 markers = []
-filterwarnings = ["ignore:::.*pytest_cov*"]
+filterwarnings = []
 
 [tool.ruff]
 line-length = 120
