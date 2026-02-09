@@ -30,7 +30,7 @@ repository = "https://github.com/lojoja/service"
 "Bug Tracker" = "https://github.com/lojoja/service/issues"
 
 [build-system]
-requires = ["uv_build>=0.9.26,<0.10.0"]
+requires = ["uv_build>=0.9.26,<0.11.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
